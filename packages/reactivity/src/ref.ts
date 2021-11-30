@@ -137,10 +137,12 @@ class RefImpl<T> {
   }
 }
 
+// 手动将一个执行与ref相关的副作用
 export function triggerRef(ref: Ref) {
   triggerRefValue(ref, __DEV__ ? ref.value : void 0)
 }
 
+// 如果是ref 返回原始数据 否则返回参数本身
 export function unref<T>(ref: T | Ref<T>): T {
   return isRef(ref) ? (ref.value as any) : ref
 }

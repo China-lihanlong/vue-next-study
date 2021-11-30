@@ -82,7 +82,7 @@ export class EffectScope {
   }
 }
 
-// 产生一个独立的作用范围 方便对一系列effect进行操作 暴露给外界的接口
+// 产生一个独立的作用范围 方便对所有的effect进行操作 暴露给外界的接口
 export function effectScope(detached?: boolean) {
   return new EffectScope(detached)
 }
@@ -103,7 +103,7 @@ export function getCurrentScope() {
   return activeEffectScope
 }
 
-// 给当前的激活的作用范围添加清除
+// 给当前的激活的作用范围添加处理回调 该回调会在相关的effect作用域结束之后被调用。
 export function onScopeDispose(fn: () => void) {
   if (activeEffectScope) {
     activeEffectScope.cleanups.push(fn)
