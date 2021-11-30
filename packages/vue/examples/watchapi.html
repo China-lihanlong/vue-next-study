@@ -1,11 +1,13 @@
 <div id="app">
-  count: {{count}}
+  <!-- count: {{count}} -->
   <!-- count2: {{count2}} -->
   <!-- <button @click="addCount">addCount</button> -->
+  <button @click="addCount">count++</button>
+  <p @click="addWatch">{{count}}</p>
 </div>
 <script src="../dist/vue.global.js"></script>
 <script>
-  const { ref, createApp, watch, reactive, readonly } = Vue
+  const { ref, createApp, watch, reactive, readonly, getCurrentInstance } = Vue
   const App = {
     setup() {
       /* const count = ref(10)
@@ -17,19 +19,41 @@
         count.value++
         // countdouble.value = count.value * 2
       } */
-      let b = new Map()
-      let a = new Map()
-      let c = new Map()
-      a.set(c, 10)
-      const count = readonly(a)
-      count.set(c, 11)
-      // count.delete(10)
-      const d = count.keys()
-      console.log(d[Symbol.iterator]() === d)
+      /*  let b = new Map()
+       let a = new Map()
+       let c = new Map()
+       a.set(c, 10)
+       const count = readonly(a)
+       count.set(c, 11)
+       // count.delete(10)
+       const d = count.keys()
+       console.log(d[Symbol.iterator]() === d)
+       return {
+         count,
+         // addCount,
+         // count2
+       } */
+
+
+      const count = ref(0)
+
+
+      function addCount() {
+        count.value++
+      }
+
       return {
         count,
-        // addCount,
-        // count2
+        addCount,
+        // addWatch
+      }
+    },
+
+    methods: {
+      addWatch() {
+        this.$watch('count', (newValue, oldValue) => {
+          console.log(newValue, oldValue)
+        })
       }
     }
   }

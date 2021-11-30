@@ -276,6 +276,7 @@ function doWatch(
         isArray(val) &&
         checkCompatEnabled(DeprecationTypes.WATCH_ARRAY, instance)
       ) {
+        // 递归查找数据
         traverse(val)
       }
       return val
@@ -426,7 +427,7 @@ function doWatch(
     effect.run() // watchEffect
   }
 
-  // 返沪取消观察的函数
+  // 返回卸载观察的函数
   return () => {
     effect.stop()
     if (instance && instance.scope) {
@@ -442,34 +443,51 @@ export function instanceWatch(
   value: WatchCallback | ObjectWatchOptionItem,
   options?: WatchOptions
 ): WatchStopHandle {
+  // 拿到当前实例的代理对象
   const publicThis = this.proxy as any
+  // 获取数据的方法 一共有三种情况
+  // 1. 直接是数据名称的字符串
+  // 2. 如果是函数 () => this.xxxx 进行bind之后返回一个新的函数 this指向代理对象
+  // 3. 如果是xxx.xxx.xxx 多半是个对象 需要通过createPathGetter去获取数据
   const getter = isString(source)
     ? source.includes('.')
       ? createPathGetter(publicThis, source)
       : () => publicThis[source]
     : source.bind(publicThis, publicThis)
+  // 副作用函数
   let cb
   if (isFunction(value)) {
+    // 如果是一个函数 可以直接使用
     cb = value
   } else {
+    // 或者是一个配置对象 {handler() {}, deep: true}
     cb = value.handler as Function
     options = value
   }
+  // 缓存之前的当前组件实例
   const cur = currentInstance
+  // 将this设置为当前组件实例
   setCurrentInstance(this)
+  // 执行doWatch实现watch具体可以看上面
+  // 功能和watch类似
   const res = doWatch(getter, cb.bind(publicThis), options)
+  // 恢复到之前的当前组件实例 如果之前的实例是null没有就是变成之前的模板
   if (cur) {
     setCurrentInstance(cur)
   } else {
     unsetCurrentInstance()
   }
+  // 和watch一样把卸载观察的函数返回
   return res
 }
 
 export function createPathGetter(ctx: any, path: string) {
+  // ctx是代理对象 path是数据的路径 如：xxx.aaa.ccc
+  // { xxx: { aaa: { ccc: 10 } } }
   const segments = path.split('.')
   return () => {
     let cur = ctx
+    // 循环从代理对象中拿到数据
     for (let i = 0; i < segments.length && cur; i++) {
       cur = cur[segments[i]]
     }
