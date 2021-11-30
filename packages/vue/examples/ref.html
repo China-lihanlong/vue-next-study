@@ -1,0 +1,86 @@
+<div id="app">
+  <!-- <div v-for="(count,index) in counts">
+    {{count}}
+  </div>
+  <button @click="addCounts">添加数据</button> -->
+  <!-- <div>{{arr}}</div> -->
+  <!-- <button type="button">是否存在: {{ isIncludes }}</button> -->
+</div>
+<script src="../dist/vue.global.js"></script>
+<script>
+  const { createApp, ref, toRef, reactive, readonly, toRefs, watch, watchEffect, computed, toRaw } = Vue
+
+  const App = {
+    // setup() {
+    /*  let counts = reactive([0,2,3,4,5,6,7,8])
+     function addCounts() {
+       counts.push(100)
+     }
+     watch(counts, (newValue, oldValue) => {
+       counts.includes(1)
+     })
+     return {
+       counts,
+       addCounts
+     } */
+
+
+
+    /* const arr = reactive([0, 2, 3, 4, 5, 6, 7, 8])
+    const isIncludes = computed(() => {
+      return arr.includes(1)
+    })
+
+    return {
+      arr,
+      isIncludes
+    } */
+
+    /* const state = reactive(new Map())
+    state.set('a', 10)
+
+    readonlyState = readonly(state)
+    console.log(readonlyState)
+  } */
+    /*  setup() {
+       const arr = reactive([])
+ 
+       watchEffect(() => {
+         console.log(arr)
+         arr.push(1)
+       })
+ 
+       watchEffect(() => {
+         arr.push(2)
+       })
+ 
+       arr.push(10)
+ 
+       setTimeout(() => {
+         arr[1]
+       }, 1000)
+ 
+       return { arr }
+     } */
+
+    setup() {
+      const count = ref(0)
+      const state = reactive({
+        count
+      })
+
+      setTimeout(() => {
+        state.count = 30
+      }, 1000)
+      const a = new Map()
+      a.set('1', 1)
+      let c = readonly(reactive(a))
+      console.log(c['__v_raw'] == toRaw(c['__v_raw']))
+      return {
+        state
+      }
+    }
+  }
+
+  createApp(App).mount('#app')
+</script>

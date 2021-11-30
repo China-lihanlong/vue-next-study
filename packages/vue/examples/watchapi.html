@@ -1,0 +1,38 @@
+<div id="app">
+  count: {{count}}
+  <!-- count2: {{count2}} -->
+  <!-- <button @click="addCount">addCount</button> -->
+</div>
+<script src="../dist/vue.global.js"></script>
+<script>
+  const { ref, createApp, watch, reactive, readonly } = Vue
+  const App = {
+    setup() {
+      /* const count = ref(10)
+      const count2 = ref(20)
+      // const countdouble = ref(0)
+      // watch(count, (...args) => console.log(args))
+      const addCount = () => {
+        count.value++
+        count.value++
+        // countdouble.value = count.value * 2
+      } */
+      let b = new Map()
+      let a = new Map()
+      let c = new Map()
+      a.set(c, 10)
+      const count = readonly(a)
+      count.set(c, 11)
+      // count.delete(10)
+      const d = count.keys()
+      console.log(d[Symbol.iterator]() === d)
+      return {
+        count,
+        // addCount,
+        // count2
+      }
+    }
+  }
+
+  createApp(App).mount('#app')
+</script>

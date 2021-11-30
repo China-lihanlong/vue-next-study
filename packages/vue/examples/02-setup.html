@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<div id="app">
+  {{title}} - {{myBar}}
+  <comp></comp>
+</div>
+
+<script src="../dist/vue.global.js"></script>
+<script>
+  const { createApp, ref } = Vue
+  createApp({
+    /* data() {
+      return {
+        title: 'hello, Vue3'
+      }
+    },
+ */
+    props: {
+      bar: {
+        type: String,
+        default: ''
+      },
+    },
+    setup(props, { emit, slots, attrs }) {
+      return {
+        title: ref('hello, Vue3'),
+        myBar: props.bar
+      }
+    }
+  }, { bar: 'bar' }).mount('#app')
+</script>

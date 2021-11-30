@@ -1,0 +1,36 @@
+<div id="app"></div>
+<script src="https://unpkg.com/axios"></script>
+<script src="../dist/vue.global.js"></script>
+<script>
+  const { watch, watchEffect, ref, createApp } = Vue
+  // http://m.kuwo.cn/newh5app/api/mobile/v1/music/rank/16?pn=1&rn=20
+  const count = ref(1)
+  const CancelToken = axios.CancelToken;
+  const source = CancelToken.source();
+  watchEffect(onInvalidate => {
+
+    const res = axios.get(`http://m.kuwo.cn/newh5app/api/mobile/v1/music/rank/16?pn=${count.value}&rn=20`, {
+      cancelToken: source.token
+    })
+
+    onInvalidate(cancel)
+    res.then(
+      value => {
+        console.log(value)
+      },
+      error => {
+
+      }
+    )
+  })
+
+  function cancel() {
+    source.cancel('取消请求')
+  }
+
+  setInterval(() => {
+    count.value++
+  }, 1000)
+
+
+</script>

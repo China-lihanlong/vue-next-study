@@ -1,0 +1,32 @@
+<div id="app">
+  <button @click="addItems"></button>
+  <div v-for="item in items" :key="item.id">
+    {{ item }}
+  </div>
+</div>
+<script src="../dist/vue.global.js"></script>
+<script>
+
+  const { createApp, reactive, watch } = Vue
+  const App = {
+    setup() {
+
+      const items = reactive([1, 2, 3, 4, 5])
+      watch(items, (newValue, oldValue) => {
+        console.log(items.length)
+      })
+
+      function addItems() {
+        console.log(1)
+        items.push(items.length)
+        console.log(items)
+      }
+      return {
+        items,
+        addItems
+      }
+    }
+  }
+
+  createApp(App).mount('#app')
+</script>

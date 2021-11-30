@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<div id="app"></div>
+<script>
+
+  const createAppAPI = (render) => {
+
+    return function createApp(rootComponent) {
+      const app = {
+        mount: (rooContainer) => {
+          const vnode = {
+            tag: rootComponent
+          }
+
+          // 渲染
+          render(vnode, rooContainer)
+        }
+      }
+
+      return app
+    }
+  }
+
+  const createRenderer = options => {
+    const render = (vnode, container) => {
+      patch(container._vnode || null, vnode, container)
+      container._vnode = vnode
+    }
+
+    const patch = (n1, n2, container) => {
+
+      const rootComponent = n2.tag
+
+      const ctx = { ...rootComponent.data() }
+      const vnode = rootComponent.render.call(ctx)
+      const parent = options.querySelector(container)
+      const child = createElm(vnode)
+      options.insert(parent, child)
+    }
+
+    const createElm = (vnode) => {
+      console.log(vnode)
+      const parent = document.createElement(vnode.tag)
+      const children = vnode.children
+      if (typeof children === 'string') {
+        parent.textContent = children
+        return parent
+      } else if (Array.isArray(children)) {
+        // 如果多个子元素进行遍历 创建并放入的父元素中
+        children.forEach(child => {
+          const c = createElm(child)
+          parent.appendChild(c)
+        })
+        return parent
+      }
+
+    }
+
+    return {
+      render,
+      createApp: createAppAPI(render)
+    }
+  }
+
+  const renderer = createRenderer({
+    querySelector(select) {
+      return document.querySelector(select)
+    },
+    createElement(tag) {
+      return document.createElement(tag)
+    },
+    insert(parent, child, anchor) {
+      parent.insertBefore(child, anchor || null)
+    }
+  })
+
+  // createApp
+  const Vue = {
+    createApp(options) {
+      return renderer.createApp(options)
+    }
+  }
+
+
+  Vue.createApp({
+    data() {
+      return {
+        foo: 'hello, Vue3'
+      }
+    },
+    render() {
+      return {
+        tag: 'h2',
+        children: [{ tag: 'p', children: this.foo }]
+      }
+    }
+  }).mount('#app')
+</script>

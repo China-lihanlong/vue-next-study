@@ -1,0 +1,117 @@
+<div id="app">
+  <!-- <div @click="addCount">count: {{ count }}</div> -->
+  <!-- <div>doubleCount: {{ doubleCount }}</div> -->
+  <ul @click="addState">
+    <li>111</li>
+    <li v-for="(effect,index) in state">{{effect}}</li>
+  </ul>
+  <!-- <p>{{ effectResult }}</p> -->
+  <!-- <p @click="addCount">{{ count }}</p> -->
+  <!-- <div @click="addMapState">{{mapState}}</div> -->
+</div>
+<script src="../dist/vue.global.js"></script>
+<script>
+  const { createApp, ref, reactive, shallowReactive, readonly, shllowReadonly, watch, computed, watchEffect, effect, ReactiveEffect, cleanupEffect, stop } = Vue
+  console.log(stop)
+  const count = ref(0)
+  const double = effect(() => {
+    console.log(8 * count.value)
+  })
+
+  count.value = 10
+  double()
+  const App = {
+    setup() {
+      /*  const items = reactive({
+         name: 'vue3',
+         url: 'cn.vue.js.org',
+       }) */
+      /* const count = ref(0)
+      function addCount() {
+        count.value++
+      }
+
+      function getCount() {
+        return count
+      } */
+
+      /* watch(getCount, () => {
+        console.log('count变化了')
+      }) */
+      /* watch(count, () => {
+        console.log('count变化了')
+      }) */
+      /* watchEffect(() => {
+        console.log(count.value, 'count变化了')
+      }) */
+      // const count = ref(0)
+      /* const effectResult = computed(() => {
+        return count.value * 2 + computed(() => {
+          return count.value * 2
+        })
+      }) */
+      /*       const demo1 = watch(count, function (newValue, oldValue, onInvalidate) {
+              onInvalidate(() => {
+                console.log(1)
+              })
+              console.log('count变化了')
+            })
+            function addCount() {
+              count.value++
+              if (count.value > 2) {
+                demo1()
+              }
+            } */
+      /* function addCount() {
+        count.value++
+      } */
+      /* const results = reactive([0])
+      const effects = []
+      for (let i = 1; i < 40; i++) {
+        ; (index => {
+          const fx = effect(() => {
+            results[index] = results[index - 1] * 2
+          })
+          effects.push({ fx, index })
+        })(i)
+      }
+ */
+      /*  const count = ref(0)
+       function addCount() {
+         count.value++
+       } */
+      /* let a = new Map()
+      a.set('0', 0)
+      const mapState = reactive(a)
+      console.log(mapState)
+      function addMapState() {
+        mapState.set('1', 1)
+      } */
+      const state = reactive([])
+      function addState() {
+        state.push(1)
+      }
+      return {
+        state,
+        addState
+        // mapState,
+        // addMapState
+        // effectResult
+        // items,
+        /* count,
+        addCount, */
+        // doubleCount,
+      }
+    },
+
+    /* watch: {
+      count: {
+        handler() {
+          console.log('count变化了')
+        }
+      }
+    } */
+  }
+  const app = createApp(App)
+    .mount('#app')
+</script>

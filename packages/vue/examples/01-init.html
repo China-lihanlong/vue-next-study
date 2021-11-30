@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<div id="app">
+  {{title}}
+  <comp></comp>
+</div>
+
+<script src="../dist/vue.global.js"></script>
+<script>
+  const { createApp, ref, onBeforeMount } = Vue
+  createApp({
+
+    setup() {
+
+      onBeforeMount(() => {
+        console.log('onBeforeMount')
+      })
+
+      return {
+        count: ref(10)
+      }
+    },
+
+    beforeMount () {
+      console.log('beforMount')
+    },
+
+    data() {
+      return {
+        title: 'hello, Vue3'
+      }
+    }
+  }).component('comp', {
+    template: '<div>I am comp</div>'
+  }).mount('#app')
+  //createAppAPI() -> createApp <- render() <- createRender()
+  // createApp () => mount() => render() => patch() => processComponent() => mountComponent()
+</script>

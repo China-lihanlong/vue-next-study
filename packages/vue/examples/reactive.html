@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<div id="app">
+ <!--  {{foo}} -- {{bar}}
+  <ul>
+    <li v-for="arr in arrs" :key="arr.id">
+      {{ arr }}
+    </li>
+  </ul> -->
+  {{count}}
+  <ul>
+    <li v-for="item in data" :key="item">
+      {{ item }}
+    </li>
+  </ul>
+</div>
+<script src="../dist/vue.global.js"></script>
+<script>
+  const { createApp, reactive } = Vue
+  /* createApp({
+    data() {
+      return {
+        foo: {a: 10},
+        arrs: [1,2,3,4,5,6],
+        bar: 'bar'
+      }
+    },
+    mounted() {
+      setTimeout(() => {
+        // this.foo = {b: 10}
+        // this.foo.c = 10
+        this.arrs.splice(1, 0, 2)
+      }, 1000),
+      setTimeout(() => {
+        // this.bar = 'foo'
+      }, 1000)
+    }
+  }).mount('#app') */
+
+  const app = createApp({
+    setup() {
+      const data = reactive({
+        name: '小花',
+        age: 10,
+        sex: 'girl'
+      })
+
+      return {
+        data
+      }
+    },
+
+    data() {
+      return {
+        count: 1
+      }
+    },
+
+    computed: {
+      
+    },
+    watch: {
+      
+    }
+  }).mount('#app')
+  console.log(app.$)
+</script>
