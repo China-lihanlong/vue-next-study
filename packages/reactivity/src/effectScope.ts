@@ -21,6 +21,10 @@ export class EffectScope {
   private index: number | undefined
 
   constructor(detached = false) {
+    // 如果是由创建实例的方法进行实例化 不会进入这个if中 因为每一个组件的副作用作用域是独立不能相互干扰
+    // 但如果是在某个组件实例中进行实例化 那么当前的组件实例的副作用作用域就会被作为新产生的作用域的副作用
+    // 且在父作用域上会有一个变量scopes来存储所有归属它的子作用域
+    // 子作用域上有一个变量index作为标记
     if (!detached && activeEffectScope) {
       this.parent = activeEffectScope
       this.index =
@@ -98,7 +102,7 @@ export function recordEffectScope(
   }
 }
 
-// 拿到激活的作用范围
+// 如果有返回激活的作用范围
 export function getCurrentScope() {
   return activeEffectScope
 }

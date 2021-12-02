@@ -40,7 +40,7 @@ class ComputedRefImpl<T> {
 
   // 计算属性是一个可以计算的ref
   public readonly __v_isRef = true
-  // 标记这个属性是否为只读属性
+  // 标记这个计算属性是否为只读属性
   public readonly [ReactiveFlags.IS_READONLY]: boolean
 
   constructor(

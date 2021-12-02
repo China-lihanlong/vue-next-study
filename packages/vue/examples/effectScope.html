@@ -1,0 +1,29 @@
+<div id="app">
+  <button @click="addCount">count++</button>
+  count：{{count}}
+</div>
+<script src="../dist/vue.global.js"></script>
+<script>
+  const { createApp, ref, reactive, computed, EffectScope } = Vue
+  const App = {
+    setup() {
+      const count = ref(0)
+      const scopen = new EffectScope()
+      const threeCount = computed(() => {
+        return computed(() => {
+          return count.value * 2
+        })
+      })
+      function addCount() {
+        count.value++
+      }
+
+      return {
+        count,
+        addCount
+      }
+    }
+  }
+
+  const app = createApp(App).mount('#app')
+</script>

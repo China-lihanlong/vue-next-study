@@ -1,19 +1,40 @@
-<div id="app"></div>
+<div id="app">
+  <p @click="addCount">{{count}}</p>
+</div>
 <script src="../axios.min.js"></script>
 <script src="../dist/vue.global.js"></script>
 <script>
-  const {ref, reactive, deferredComputed, createApp} = Vue
-  console.log(deferredComputed)
-  /* const App = {
+  const { ref, reactive, createApp, computed, watch } = Vue
+  // console.log(deferredComputed)
+  // http://m.kuwo.cn/newh5app/api/mobile/v1/music/rank/16?pn=1&rn=20
+  const App = {
     setup() {
-      // const doubleCount = deferredComputed)
+      const count = ref(0)
+      let data = reactive([])
+
+      watch(count, () => {
+        axios({
+          url: `http://m.kuwo.cn/newh5app/api/mobile/v1/music/rank/16?pn=${count.value}&rn=20`,
+          method: 'get'
+        }).then(
+          res => {
+            data.push(...res.data.data.list)
+            console.log(data)
+          }
+        )
+      })
+
+      function addCount() {
+        count.value++
+      }
 
       return {
-        doubleCount,
-        count
+        data,
+        count,
+        addCount
       }
     }
   }
 
-  const app = createApp(App).mount('#app') */
+  const app = createApp(App).mount('#app')
 </script>

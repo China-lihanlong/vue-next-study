@@ -239,7 +239,7 @@ function doWatch(
     // 主要是看第二参数 cb 
     // 一般情况下很大概率只有watch传递的是函数，作为doWatch的第二参数传递
     // 而watchEffect传递的一般是配置项但是会将其作为doWatch第三参数传递 第二参数就默认传个null
-    // 两个的执行一个是正常执行 一个是异步调用
+    // 两个的执行一个是正常执行 一个是异步调用(但是会先执行一次)
     if (cb) {
       // getter with cb cb是一个函数 watch(() => count.value, () => {})
       getter = () =>
@@ -485,6 +485,7 @@ export function createPathGetter(ctx: any, path: string) {
   // ctx是代理对象 path是数据的路径 如：xxx.aaa.ccc
   // { xxx: { aaa: { ccc: 10 } } }
   const segments = path.split('.')
+  // 返回一个可以循环从代理对象中拿到数据
   return () => {
     let cur = ctx
     // 循环从代理对象中拿到数据
