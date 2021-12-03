@@ -39,19 +39,29 @@ let isFlushPending = false
 const queue: SchedulerJob[] = []
 let flushIndex = 0
 
+// 等待处理的同步任务
 const pendingPreFlushCbs: SchedulerJob[] = []
+// 当前正在处理的同步任务
 let activePreFlushCbs: SchedulerJob[] | null = null
+// 同步任务索引
 let preFlushIndex = 0
 
+// 等待处理的异步任务
 const pendingPostFlushCbs: SchedulerJob[] = []
+// 当前正在处理的异步任务
 let activePostFlushCbs: SchedulerJob[] | null = null
+// 异步任务索引
 let postFlushIndex = 0
 
+// 一个成功的Promise用于开启一个新的批量异步更新
 const resolvedPromise: Promise<any> = Promise.resolve()
+// 承诺在某个时刻更新的任务 或许可以用于开启一个新的批量异步更新
 let currentFlushPromise: Promise<void> | null = null
 
+// 递归调度的中 当前的调度函数的上一层函数
 let currentPreFlushParentJob: SchedulerJob | null = null
 
+// 调度递归的最大限制
 const RECURSION_LIMIT = 100
 type CountMap = Map<SchedulerJob, number>
 
@@ -88,6 +98,8 @@ export function queueJob(job: SchedulerJob) {
   // if the job is a watch() callback, the search will start with a +1 index to
   // allow it recursively trigger itself - it is the user's responsibility to
   // ensure it doesn't end up in an infinite loop.
+  // (queue是一个数组)正常情况下 Array.includes是包含当前正在允许的调度函数 因此 job是不会允许递归自身
+  //  但是如果是watch的调度函数等 用户去手动递归(用户的责任) 调度任务搜索索引加一(不会找到自身)
   if (
     (!queue.length ||
       !queue.includes(
@@ -96,6 +108,7 @@ export function queueJob(job: SchedulerJob) {
       )) &&
     job !== currentPreFlushParentJob
   ) {
+    // 将调度函数放入同步任务队列(微任务队列)中
     if (job.id == null) {
       queue.push(job)
     } else {
@@ -108,6 +121,7 @@ export function queueJob(job: SchedulerJob) {
 function queueFlush() {
   if (!isFlushing && !isFlushPending) {
     isFlushPending = true
+    // 当前同步微任务
     currentFlushPromise = resolvedPromise.then(flushJobs)
   }
 }
@@ -256,6 +270,7 @@ function flushJobs(seen?: CountMap) {
           continue
         }
         // console.log(`running:`, job.id)
+        // 这里就是执行调度函数的入口
         callWithErrorHandling(job, null, ErrorCodes.SCHEDULER)
       }
     }

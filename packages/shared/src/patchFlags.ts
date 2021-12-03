@@ -16,15 +16,18 @@
  * Check the `patchElement` function in '../../runtime-core/src/renderer.ts' to see how the
  * flags are handled during diff.
  */
+// 用来表示在DOM DIFF的时候需要去对比那些东西 为了做运行时优化
 export const enum PatchFlags {
   /**
    * Indicates an element with dynamic textContent (children fast path)
    */
+  // 文本
   TEXT = 1,
 
   /**
    * Indicates an element with dynamic class binding.
    */
+  // 类名
   CLASS = 1 << 1,
 
   /**
@@ -35,6 +38,7 @@ export const enum PatchFlags {
    *   const style = { color: 'red' }
    *   render() { return e('div', { style }) }
    */
+  // 行内样式
   STYLE = 1 << 2,
 
   /**
@@ -44,6 +48,7 @@ export const enum PatchFlags {
    * array that contains the keys of the props that may change so the runtime
    * can diff them faster (without having to worry about removed props)
    */
+  // 不是CLASS或者STYLE的元素特性 
   PROPS = 1 << 3,
 
   /**
@@ -51,27 +56,32 @@ export const enum PatchFlags {
    * diff is always needed to remove the old key. This flag is mutually
    * exclusive with CLASS, STYLE and PROPS.
    */
+  // 动态特性 <comp count="count"></comp>
   FULL_PROPS = 1 << 4,
 
   /**
    * Indicates an element with event listeners (which need to be attached
    * during hydration)
    */
+  // 事件渲染
   HYDRATE_EVENTS = 1 << 5,
 
   /**
    * Indicates a fragment whose children order doesn't change.
    */
+  // 静态的元素节点
   STABLE_FRAGMENT = 1 << 6,
 
   /**
    * Indicates a fragment with keyed or partially keyed children
    */
+  // 带有key v-for 渲染的节点
   KEYED_FRAGMENT = 1 << 7,
 
   /**
    * Indicates a fragment with unkeyed children.
    */
+  // 不带有key v-for 渲染的节点
   UNKEYED_FRAGMENT = 1 << 8,
 
   /**
@@ -80,6 +90,7 @@ export const enum PatchFlags {
    * and onVnodeXXX hooks, it simply marks the vnode so that a parent block
    * will track it.
    */
+  // 表示这个元素需要PATCH
   NEED_PATCH = 1 << 9,
 
   /**
@@ -87,6 +98,7 @@ export const enum PatchFlags {
    * iterated value, or dynamic slot names).
    * Components with this flag are always force updated.
    */
+  // 动态插槽
   DYNAMIC_SLOTS = 1 << 10,
 
   /**
@@ -94,6 +106,7 @@ export const enum PatchFlags {
    * comments at the root level of a template. This is a dev-only flag since
    * comments are stripped in production.
    */
+  // 模板根级别的注释 在开发环境中显示 在生成环境的中被去除
   DEV_ROOT_FRAGMENT = 1 << 11,
 
   /**
@@ -108,6 +121,7 @@ export const enum PatchFlags {
    * Indicates a hoisted static vnode. This is a hint for hydration to skip
    * the entire sub tree since static content never needs to be updated.
    */
+  // 静态提升节点
   HOISTED = -1,
   /**
    * A special flag that indicates that the diffing algorithm should bail out

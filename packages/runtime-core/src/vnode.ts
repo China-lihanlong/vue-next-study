@@ -336,6 +336,7 @@ export function isVNode(value: any): value is VNode {
   return value ? value.__v_isVNode === true : false
 }
 
+// 判断新旧两个元素是否为同一种元素类型 且key要一样
 export function isSameVNodeType(n1: VNode, n2: VNode): boolean {
   if (
     __DEV__ &&
@@ -343,6 +344,7 @@ export function isSameVNodeType(n1: VNode, n2: VNode): boolean {
     hmrDirtyComponents.has(n2.type as ConcreteComponent)
   ) {
     // HMR only: if the component has been hot-updated, force a reload.
+    // 如果组件已经热更新，则强制更新DOM结构
     return false
   }
   return n1.type === n2.type && n1.key === n2.key

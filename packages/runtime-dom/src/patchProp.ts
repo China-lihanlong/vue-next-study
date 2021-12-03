@@ -10,6 +10,7 @@ const nativeOnRE = /^on[a-z]/
 
 type DOMRendererOptions = RendererOptions<Node, Element>
 
+// 更新元素上的参数 class style
 export const patchProp: DOMRendererOptions['patchProp'] = (
   el,
   key,
@@ -27,9 +28,11 @@ export const patchProp: DOMRendererOptions['patchProp'] = (
     patchStyle(el, prevValue, nextValue)
   } else if (isOn(key)) {
     // ignore v-model listeners
+    // 自定义 v-model 监听
     if (!isModelListener(key)) {
       patchEvent(el, key, prevValue, nextValue, parentComponent)
     }
+    // :count="state.count"
   } else if (
     key[0] === '.'
       ? ((key = key.slice(1)), true)
@@ -47,6 +50,7 @@ export const patchProp: DOMRendererOptions['patchProp'] = (
       unmountChildren
     )
   } else {
+    // input 元素的值是false或者是true
     // special case for <input v-model type="checkbox"> with
     // :true-value & :false-value
     // store value as dom properties since non-string values will be
@@ -60,6 +64,7 @@ export const patchProp: DOMRendererOptions['patchProp'] = (
   }
 }
 
+// 兼容一些原生特性 将其作为属性设置
 function shouldSetAsProp(
   el: Element,
   key: string,
