@@ -121,7 +121,7 @@ export const enum PatchFlags {
    * Indicates a hoisted static vnode. This is a hint for hydration to skip
    * the entire sub tree since static content never needs to be updated.
    */
-  // 静态提升节点
+  // 静态提升节点 表示节点的内容永远都不会发生变化
   HOISTED = -1,
   /**
    * A special flag that indicates that the diffing algorithm should bail out
@@ -130,6 +130,7 @@ export const enum PatchFlags {
    * render functions, which should always be fully diffed)
    * OR manually cloneVNodes
    */
+  // 表示一个节点的结束 在DOM diff的时候
   BAIL = -2
 }
 

@@ -6,6 +6,7 @@ import { warn, DeprecationTypes, compatUtils } from '@vue/runtime-core'
 import { includeBooleanAttr } from '@vue/shared'
 
 // functions. The user is responsible for using them with only trusted content.
+// 可能是在使用 v-html 强制更新VNode 设置HTML内容
 export function patchDOMProp(
   el: any,
   key: string,
@@ -51,6 +52,7 @@ export function patchDOMProp(
     return
   }
 
+  // 某些特殊情况的值的设置
   if (value === '' || value == null) {
     const type = typeof el[key]
     if (type === 'boolean') {
@@ -96,6 +98,7 @@ export function patchDOMProp(
   }
 
   // some properties perform value validation and throw
+  // 如果一些可能不兼容的属性设置报错
   try {
     el[key] = value
   } catch (e: any) {

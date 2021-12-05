@@ -32,7 +32,6 @@ export const patchProp: DOMRendererOptions['patchProp'] = (
     if (!isModelListener(key)) {
       patchEvent(el, key, prevValue, nextValue, parentComponent)
     }
-    // :count="state.count"
   } else if (
     key[0] === '.'
       ? ((key = key.slice(1)), true)
@@ -40,6 +39,7 @@ export const patchProp: DOMRendererOptions['patchProp'] = (
       ? ((key = key.slice(1)), false)
       : shouldSetAsProp(el, key, nextValue, isSVG)
   ) {
+    // 提高设置svg的属性以及一些特殊属性设置的速度
     patchDOMProp(
       el,
       key,

@@ -376,23 +376,27 @@ function baseCreateRenderer(
     slotScopeIds = null,
     optimized = __DEV__ && isHmrUpdating ? false : !!n2.dynamicChildren
   ) => {
+    // 优化：节点完全相同 直接退出
     if (n1 === n2) {
       return
     }
 
     // patching & not same type, unmount old tree
+    // 更新节点 在节点类型不同的情况下 删除旧的的节点
     if (n1 && !isSameVNodeType(n1, n2)) {
       anchor = getNextHostNode(n1)
       unmount(n1, parentComponent, parentSuspense, true)
       n1 = null
     }
 
+    // 结束DOM diff 在节点类型是PatchFlags.BAIL情况下
     if (n2.patchFlag === PatchFlags.BAIL) {
       optimized = false
       n2.dynamicChildren = null
     }
 
     // 第一次进来 type 是根组建的配置对象 所以会执行 if(shapeFlag & ShapeFlags.COMPONENT) 中的逻辑 也就是执行 processComponent 函数
+    // 在对比节点列表的情况下(vFor渲染出来的) 大部分情况下都是进入patchElement
     const { type, ref, shapeFlag } = n2
     switch (type) {
       case Text: /* 文本 */
@@ -928,6 +932,7 @@ function baseCreateRenderer(
             const next = newProps[key]
             // #1471 force patch value
             if (next !== prev || key === 'value') {
+              // input元素 v-model属性 强制更新
               hostPatchProp(
                 el,
                 key,
@@ -944,7 +949,7 @@ function baseCreateRenderer(
         }
       }
 
-      // text
+      // 更新文本text
       // This flag is matched when the element has only dynamic text children.
       if (patchFlag & PatchFlags.TEXT) {
         if (n1.children !== n2.children) {
@@ -953,6 +958,7 @@ function baseCreateRenderer(
       }
     } else if (!optimized && dynamicChildren == null) {
       // unoptimized, full diff
+      // 没有优化 全量diff
       patchProps(
         el,
         n2,
@@ -964,6 +970,7 @@ function baseCreateRenderer(
       )
     }
 
+    // 执行元素组件内部的onVnodeUpdated 在数据更新完毕 渲染完成后执行
     if ((vnodeHook = newProps.onVnodeUpdated) || dirs) {
       queuePostRenderEffect(() => {
         vnodeHook && invokeVNodeHook(vnodeHook, parentComponent, n2, n1)
@@ -1830,14 +1837,20 @@ function baseCreateRenderer(
   ) => {
     let i = 0
     const l2 = c2.length
+    // 旧节点列表中最大索引
     let e1 = c1.length - 1 // prev ending index
+    // 新节点列表中最大索引
     let e2 = l2 - 1 // next ending index
 
     // 1. sync from start
     // (a b) c
     // (a b) d e
     while (i <= e1 && i <= e2) {
+    // 同步对比开始位置：
+    // 找不同 更新节点 在相同节点类型的情况下 
+    // 跳过该节点 在节点类型不同的情况下
       const n1 = c1[i]
+      // 在优化(已经挂载)的情况下克隆一份 不然直接标准化后对比
       const n2 = (c2[i] = optimized
         ? cloneIfMounted(c2[i] as VNode)
         : normalizeVNode(c2[i]))
@@ -1863,6 +1876,10 @@ function baseCreateRenderer(
     // a (b c)
     // d e (b c)
     while (i <= e1 && i <= e2) {
+    // 同步对比结束位置：
+    // 找不同 更新节点 在相同节点类型的情况下 
+    // 跳过该节点 在节点类型不同的情况下
+    // 减小新旧节点列表的对比数量，如果正常的patch完毕(对比完成 后续不在对比)
       const n1 = c1[e1]
       const n2 = (c2[e2] = optimized
         ? cloneIfMounted(c2[e2] as VNode)
@@ -1895,7 +1912,13 @@ function baseCreateRenderer(
     // i = 0, e1 = -1, e2 = 0
     if (i > e1) {
       if (i <= e2) {
+        // 挂载新节点
+        // 更新位置的下一个节点的索引(可能是新增最后一个节点 则是parentAnchor)
         const nextPos = e2 + 1
+        // parentAnchor 其实是节点列表结束的位置一般都是空字符串
+        // anchor 会根据新增的是不是最后一个节点
+        // 如果是 就会用parentAnchor作为更新位置标记
+        // 不是 如这种情况 (a b) c (d, e)  会找到新增位置的下一个节点作为更新位置标记
         const anchor = nextPos < l2 ? (c2[nextPos] as VNode).el : parentAnchor
         while (i <= e2) {
           patch(
@@ -1916,6 +1939,7 @@ function baseCreateRenderer(
       }
     }
 
+    // 删除旧节点
     // 4. common sequence + unmount
     // (a b) c
     // (a b)
@@ -1939,6 +1963,7 @@ function baseCreateRenderer(
       const s2 = i // next starting index
 
       // 5.1 build key:index map for newChildren
+      // 找到新的key和索引的映射关系 保存在 keyToNewIndexMap 中
       const keyToNewIndexMap: Map<string | number | symbol, number> = new Map()
       for (i = s2; i <= e2; i++) {
         const nextChild = (c2[i] = optimized
@@ -1958,9 +1983,12 @@ function baseCreateRenderer(
 
       // 5.2 loop through old children left to be patched and try to patch
       // matching nodes & remove nodes that are no longer present
+      // 循环旧节点列表 以匹配需要更新的节点和删除不需要的节点
       let j
       let patched = 0
+      // 还需要更新节点数量
       const toBePatched = e2 - s2 + 1
+      // 标记是否有子节点需要移动
       let moved = false
       // used to track whether any node has moved
       let maxNewIndexSoFar = 0
@@ -1969,20 +1997,27 @@ function baseCreateRenderer(
       // and oldIndex = 0 is a special value indicating the new node has
       // no corresponding old node.
       // used for determining longest stable subsequence
+      // 找到新索引的和旧索引的映射关系
+      // newIndexToOldIndexMap也是旧节点根据新节点重新排序的情况 在移动节点的情况下
+      // 注意oldinex=0是一个特殊值，表示新节点没有对应的旧节点。用于确定最长稳定子序列
       const newIndexToOldIndexMap = new Array(toBePatched)
       for (i = 0; i < toBePatched; i++) newIndexToOldIndexMap[i] = 0
 
       for (i = s1; i <= e1; i++) {
         const prevChild = c1[i]
         if (patched >= toBePatched) {
+          // 只能卸载节点 在从5开始更新完毕的节点数量大于需要更新的节点
           // all new children have been patched so this can only be a removal
           unmount(prevChild, parentComponent, parentSuspense, true)
           continue
         }
+        // 节点的新索引
         let newIndex
         if (prevChild.key != null) {
+          // 存在key 在新key和旧key映射中找到对应 => 找到对应的新节点和旧节点
           newIndex = keyToNewIndexMap.get(prevChild.key)
         } else {
+          // 节点没有设置 key 尝试从新旧索引映射中找索引 试图在旧的节点中找到相同没有key的节点
           // key-less node, try to locate a key-less node of the same type
           for (j = s2; j <= e2; j++) {
             if (
@@ -1995,8 +2030,10 @@ function baseCreateRenderer(
           }
         }
         if (newIndex === undefined) {
+          // 没有找到 旧节点没有对应的新节点 卸载这个节点
           unmount(prevChild, parentComponent, parentSuspense, true)
         } else {
+          // oldIndex值不为零 说明有对应的新节点存在 设置为移动了几个位置
           newIndexToOldIndexMap[newIndex - s2] = i + 1
           if (newIndex >= maxNewIndexSoFar) {
             maxNewIndexSoFar = newIndex
@@ -2014,6 +2051,7 @@ function baseCreateRenderer(
             slotScopeIds,
             optimized
           )
+          // 更新完毕的节点数量加一
           patched++
         }
       }
@@ -2553,6 +2591,8 @@ export function traverseStaticChildren(n1: VNode, n2: VNode, shallow = false) {
 }
 
 // https://en.wikipedia.org/wiki/Longest_increasing_subsequence
+// 最长递增子序列
+// 这个方法返回的是arr中最长递增子序列的中所有项对应的索引汇总
 function getSequence(arr: number[]): number[] {
   const p = arr.slice()
   const result = [0]

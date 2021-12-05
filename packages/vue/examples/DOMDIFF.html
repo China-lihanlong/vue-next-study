@@ -1,9 +1,12 @@
 <div id="app">
-  <div>{{ count }}</div>
+  <div .a="count">{{ count }}</div>
   <button @click="addCount">count++</button>
   <comp :count="count"></comp>
   {{ username }}
-  <input type="text" v-model="count" />
+  <input type="text" v-model.trim="count" />
+  <ul @click="pushState">
+    <li v-for="(item,index) in state" :key="item">{{item}}</li>
+  </ul>
   <!-- <comp>
     <template v-slot:default="slotProps">
       <div>{{slotProps.state}}</div>
@@ -18,12 +21,20 @@
 
     setup() {
       const count = ref(0)
+      let state = reactive([1, 2, 3, 4])
+      function pushState() {
+        state[1] = 4
+        state[2] = 2
+        state[3] = 3
+      }
       function addCount() {
         count.value++
       }
       return {
         count,
-        addCount
+        addCount,
+        state,
+        pushState
       }
     }
   }
@@ -65,24 +76,41 @@
       ], 64 /* STABLE_FRAGMENT */))
     }
   }
+
+  [10,9,2,5,3,7,101,18]
+  [0,0,0,0,0,0,0,0]
 </script> -->
 
 
 <script>
 
 
-/**
- * DOM diff流程
- * 在之前的setupRenderEffect函数中，产生过一个函数 componentUpdateFn 通过ReactiveEffect将其和数据产生了依赖关系
- * 在数据更新之后，就会重新执行,但是不是直接执行 componentUpdateFn，而是执行调度函数(在每一个数据身上的effect有调度
- * 函数都会去调用，不是直接执行更新更新器)
- * 
- * 调度函数执行的是queueJob 作用是把更新器放入同步任务队列(是一个微任务队列) 
- * 在更新器内部是调用流程是 run() => componentUpdateFn() => (先调用渲染render产生新的VNode)patch()
- * 
- * 在更新阶段 第一次进入patch肯定是Fragment(或者称之为块) 调用 processFragment() 调用 patchBlockChildren()(patchBlockChildren
- * 的作用是遍历Fragment(或者称之为块)中的每一个元素进行对比还是调用patch)
- * 第二次进入patch 就可以对比节点(元素文本啥的)
- */
+  /**
+   * DOM diff流程
+   * 在之前的setupRenderEffect函数中，产生过一个函数 componentUpdateFn 通过ReactiveEffect将其和数据产生了依赖关系
+   * 在数据更新之后，就会重新执行,但是不是直接执行 componentUpdateFn，而是执行调度函数(在每一个数据身上的effect有调度
+   * 函数都会去调用，不是直接执行更新更新器)
+   *
+   * 调度函数执行的是queueJob 作用是把更新器放入同步任务队列(是一个微任务队列)
+   * 在更新器内部是调用流程是 run() => componentUpdateFn() => (先调用渲染render产生新的VNode)patch()
+   *
+   * 在更新阶段 第一次进入patch肯定是Fragment(或者称之为块) 调用 processFragment() 调用 patchBlockChildren()(patchBlockChildren
+   * 的作用是遍历Fragment(或者称之为块)中的每一个元素进行对比还是调用patch)
+   * 第二次进入patch 就可以对比节点(元素文本啥的)
+   */
+
+  /*   var lengthOfLIS = function (nums) {
+      let result = 0
+      let dp = (new Array(nums.length)).fill(1)
+      for (let i = 1; i < nums.length; i++) {
+        for (let j = 0; j < i; j++) {
+          if (nums[i] > nums[j]) {
+            dp[i] = Math.max(dp[i], dp[j] + 1)
+            console.log(dp)
+          }
+        }
+      }
+    };
+    console.log(lengthOfLIS([0,1,0,3,2,3])) */
 
 </script>
