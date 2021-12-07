@@ -1679,10 +1679,12 @@ function baseCreateRenderer(
 
     const { patchFlag, shapeFlag } = n2
     // fast path
+    // 存在 patchFlag 可以快速的进行更新节点列表
     if (patchFlag > 0) {
       if (patchFlag & PatchFlags.KEYED_FRAGMENT) {
         // this could be either fully-keyed or mixed (some keyed some not)
         // presence of patchFlag means children are guaranteed to be arrays
+        // 这里可以是全部键控，也可以是混合键控(全部节点有key 或者 一些节点有key一些节点没有key)
         patchKeyedChildren(
           c1 as VNode[],
           c2 as VNodeArrayChildren,
@@ -1697,6 +1699,7 @@ function baseCreateRenderer(
         return
       } else if (patchFlag & PatchFlags.UNKEYED_FRAGMENT) {
         // unkeyed
+        // 全部没有key
         patchUnkeyedChildren(
           c1 as VNode[],
           c2 as VNodeArrayChildren,
@@ -2035,6 +2038,8 @@ function baseCreateRenderer(
         } else {
           // oldIndex值不为零 说明有对应的新节点存在 设置为移动了几个位置
           newIndexToOldIndexMap[newIndex - s2] = i + 1
+          // maxNewIndexSoFar 是当前对比的旧节点对应新节点的最大位置(默认认为是安装顺序来的)
+          // 如果小于了对应的最大的位置说明这个节点向前移动了
           if (newIndex >= maxNewIndexSoFar) {
             maxNewIndexSoFar = newIndex
           } else {
@@ -2058,6 +2063,7 @@ function baseCreateRenderer(
 
       // 5.3 move and mount
       // generate longest stable subsequence only when nodes have moved
+      // 返回的是newIndexToOldIndexMap中最长递增子序列的索引汇总
       const increasingNewIndexSequence = moved
         ? getSequence(newIndexToOldIndexMap)
         : EMPTY_ARR
@@ -2069,6 +2075,7 @@ function baseCreateRenderer(
         const anchor =
           nextIndex + 1 < l2 ? (c2[nextIndex + 1] as VNode).el : parentAnchor
         if (newIndexToOldIndexMap[i] === 0) {
+          // 这里是移动新增
           // mount new
           patch(
             null,
@@ -2085,6 +2092,7 @@ function baseCreateRenderer(
           // move if:
           // There is no stable subsequence (e.g. a reverse)
           // OR current node is not among the stable sequence
+          // 如果移动：没有稳定的子序列（例如反向）或当前节点不在稳定序列中
           if (j < 0 || i !== increasingNewIndexSequence[j]) {
             move(nextChild, container, anchor, MoveType.REORDER)
           } else {
@@ -2594,22 +2602,42 @@ export function traverseStaticChildren(n1: VNode, n2: VNode, shallow = false) {
 // 最长递增子序列
 // 这个方法返回的是arr中最长递增子序列的中所有项对应的索引汇总
 function getSequence(arr: number[]): number[] {
+  // 数组p的作用：记录当前项的在最长递增子序列中位置的前一个位置
   const p = arr.slice()
   const result = [0]
   let i, j, u, v, c
+  /**
+   * c 是中间值的索引
+   * i 是当前比较项的索引
+   * j 是当前项的前一个索引
+   * u 是数组的前半部分
+   * v 是数组的后半部分
+   */
   const len = arr.length
   for (i = 0; i < len; i++) {
+    // 使用数组中的每一项和结果中索引的最后一个(当成最大的)对应的值(我把它叫做：lastValue)对比
+    // 如果当前项大于lastValue 就可以将当前项的索引存储在结果中
+    // 当前处理完成 就可以跳出当前循环 进行下一项的处理
+    // 创建严格递增子数组
+    // 但是呢也有可能小于的情况, 说明这里无法完全处理完毕 需要下面的处理
+    // 当前对比项
     const arrI = arr[i]
     if (arrI !== 0) {
       j = result[result.length - 1]
       if (arr[j] < arrI) {
+        // 记录当前项在子序列中的前一个的缩影
         p[i] = j
+        // 将值的索引添加到结果中 在这个值符合条件的情况
         result.push(i)
         continue
       }
       u = 0
       v = result.length - 1
+      // 在这里 说明result内已经存储了最长递增子序列的一部分，但是当前对比项比lastValue小
+      // 证明当前对比项应当在lastValue前面，但是我们不能确定lastValue前面的是不是还是比当前项大
+      // 这里采用的是二分算法 是通过二分查找在已经存在的递增子数组中找到位置给当前项替换
       while (u < v) {
+        // 这里是用位运算的二分算法
         c = (u + v) >> 1
         if (arr[result[c]] < arrI) {
           u = c + 1
@@ -2619,12 +2647,18 @@ function getSequence(arr: number[]): number[] {
       }
       if (arrI < arr[result[u]]) {
         if (u > 0) {
+          // 修改映射表中的记录值
           p[i] = result[u - 1]
         }
         result[u] = i
       }
     }
   }
+  // 由于可能会出现后面的值比前面的值小，然后导致的替换
+  // [7, 8] 下一个是3 => [3, 8] 但是呢 最长递增子序列还是 [7, 8] 长度是2
+  // 如果后面扩列了 最长递增子序列的长度改变了，那就不是 [7, 8]了
+  // 出现了比8小且比3大的值 8就会被替换掉 
+  // 一直到酒最后 通过映射表数组p从后往前推 (较大的值一般都是直接拼接到后面)
   u = result.length
   v = result[u - 1]
   while (u-- > 0) {
