@@ -10,7 +10,7 @@
       class="item"
       :msg="item"
       :key="item"
-      @rm="remove(item)">
+      @rm="move(item)">
     </item>
   </transition-group>
 </div>
@@ -21,7 +21,7 @@ let id = getInitialItems().length + 1
 
 const Item = {
   props: ['msg'],
-  template: `<div>{{ msg }} <button @click="$emit('rm')">x</button></div>`
+  template: `<div>{{ msg }} <button @click="$emit('rm')">move</button></div>`
 }
 
 Vue.createApp({
@@ -49,6 +49,10 @@ Vue.createApp({
       if (i > -1) {
         this.items.splice(i, 1)
       }
+    },
+    move() {
+      this.items[1] = 1
+      this.items[0] = 2
     }
   }
 }).mount('#app')

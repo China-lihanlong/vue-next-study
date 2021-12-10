@@ -1,0 +1,27 @@
+<div id="app">
+  <ul @click="addState">
+    <li v-for="(item,index) in state">{{ item }}</li>
+  </ul>
+</div>
+<script src="../dist/vue.global.js"></script>
+<script>
+  const { reactive, createApp } = Vue
+  const App = {
+    setup() {
+      const state = reactive([1, 2, 3, 4, 5])
+      function addState() {
+        state[1] = 4
+        state[0] = 2
+        state[2] = 1
+        state[3] = 3
+      }
+
+      return {
+        state,
+        addState
+      }
+    }
+  }
+
+  const app = createApp(App).mount('#app')
+</script>

@@ -1,17 +1,11 @@
+<link href="https://cdn.bootcdn.net/ajax/libs/animate.css/4.1.1/animate.css" rel="stylesheet">
 <div id="app">
-  <div .a="count">{{ count }}</div>
-  <button @click="addCount">count++</button>
-  <comp :count="count"></comp>
-  {{ username }}
-  <input type="text" v-model.trim="count" />
-  <ul @click="pushState">
-    <li v-for="(item,index) in state" :key="item">{{item}}</li>
-  </ul>
-  <!-- <comp>
-    <template v-slot:default="slotProps">
-      <div>{{slotProps.state}}</div>
-    </template>
-  </comp> -->
+  <div v-once>
+    <div>swdadad</div>
+    <div>swdadad</div>
+    <div>swdadad</div>
+    <comp :count="count"></comp>
+  </div>
 </div>
 <script src="../dist/vue.global.js"></script>
 <script>
@@ -24,18 +18,25 @@
       let state = reactive([1, 2, 3, 4])
       function pushState() {
         state[1] = 4
-        state[2] = 2
+        state[0] = 2
+        state[2] = 1
         state[3] = 3
       }
       function addCount() {
         count.value++
       }
       return {
+        html: '',
         count,
         addCount,
         state,
-        pushState
+        pushState,
+        show: ref(false)
       }
+    },
+
+    created () {
+      console.log('created')
     }
   }
   const comp = {
@@ -59,6 +60,23 @@
     username: 'xxxx'
   }).component('comp', comp).mount('#app')
 </script>
+
+<style>
+  .fade-enter-active,
+  .fade-leave-active {
+    transition: opacity 1s;
+  }
+
+  .slide-fade-enter-from,
+  .slide-fade-leave-to {
+    opacity: 0;
+  }
+
+  /* .fade-enter-from,
+  .fade-leave-to {
+    opacity: 0;
+  } */
+</style>
 
 <!-- <script>
   const _Vue = Vue

@@ -278,9 +278,9 @@ export type SetupRenderEffectFn = (
 ) => void
 
 export const enum MoveType {
-  ENTER,
-  LEAVE,
-  REORDER
+  ENTER, // 进入
+  LEAVE, // 退出
+  REORDER // 重新排序
 }
 
 export const queuePostRenderEffect = __FEATURE_SUSPENSE__
@@ -455,6 +455,7 @@ function baseCreateRenderer(
             optimized
           )
         } else if (shapeFlag & ShapeFlags.TELEPORT) {
+          /* Teleport */
           ;(type as typeof TeleportImpl).process(
             n1 as TeleportVNode,
             n2 as TeleportVNode,
@@ -468,6 +469,7 @@ function baseCreateRenderer(
             internals
           )
         } else if (__FEATURE_SUSPENSE__ && shapeFlag & ShapeFlags.SUSPENSE) {
+          /* Suspense */
           ;(type as typeof SuspenseImpl).process(
             n1,
             n2,
@@ -491,21 +493,26 @@ function baseCreateRenderer(
     }
   }
 
+  // 挂载或者更新文本
   const processText: ProcessTextOrCommentFn = (n1, n2, container, anchor) => {
     if (n1 == null) {
+      // 没有旧文本存在 挂载文本
       hostInsert(
         (n2.el = hostCreateText(n2.children as string)),
         container,
         anchor
       )
     } else {
+      // 直接更新文本 在新和旧的节点都存在的
       const el = (n2.el = n1.el!)
       if (n2.children !== n1.children) {
+        // hostSetText node.textContent = n2.children
         hostSetText(el, n2.children as string)
       }
     }
   }
 
+  // 初始化注释 但是由于JS不支持动态注释，直接把旧的赋值就好了
   const processCommentNode: ProcessTextOrCommentFn = (
     n1,
     n2,
@@ -524,6 +531,7 @@ function baseCreateRenderer(
     }
   }
 
+  // 挂载静态节点
   const mountStaticNode = (
     n2: VNode,
     container: RendererElement,
@@ -543,6 +551,7 @@ function baseCreateRenderer(
   /**
    * Dev / HMR only
    */
+  // 对比静态节点
   const patchStaticNode = (
     n1: VNode,
     n2: VNode,
@@ -567,6 +576,7 @@ function baseCreateRenderer(
     }
   }
 
+  // 移动静态节点
   const moveStaticNode = (
     { el, anchor }: VNode,
     container: RendererElement,
@@ -581,6 +591,7 @@ function baseCreateRenderer(
     hostInsert(anchor!, container, nextSibling)
   }
 
+  // 移除静态节点
   const removeStaticNode = ({ el, anchor }: VNode) => {
     let next
     while (el && el !== anchor) {
@@ -591,6 +602,7 @@ function baseCreateRenderer(
     hostRemove(anchor!)
   }
 
+  // 解析元素节点
   const processElement = (
     n1: VNode | null,
     n2: VNode,
@@ -627,6 +639,7 @@ function baseCreateRenderer(
     }
   }
 
+  // 挂载元素节点
   const mountElement = (
     vnode: VNode,
     container: RendererElement,
@@ -640,6 +653,8 @@ function baseCreateRenderer(
     let el: RendererElement
     let vnodeHook: VNodeHook | undefined | null
     const { type, props, shapeFlag, transition, patchFlag, dirs } = vnode
+    // 在生成环境中是克隆一份当前的重新赋值给el
+    // 在开发环境中会重新创建一个新元素给el
     if (
       !__DEV__ &&
       vnode.el &&
@@ -650,8 +665,12 @@ function baseCreateRenderer(
       // Only static vnodes can be reused, so its mounted DOM nodes should be
       // exactly the same, and we can simply do a clone here.
       // only do this in production since cloned trees cannot be HMR updated.
+      // 如果vnode具有非空el，则表示它正在被重用。只有静态Vnode可以重用，
+      // 因此它挂载的DOM节点应该完全相同，我们可以在这里简单地进行克隆。
+      // 仅在生产环境中执行此操作，因为克隆树无法更新HMR(热更新)
       el = vnode.el = hostCloneNode(vnode.el)
     } else {
+      // 重新创建一个元素赋值给 el
       el = vnode.el = hostCreateElement(
         vnode.type as string,
         isSVG,
@@ -661,9 +680,13 @@ function baseCreateRenderer(
 
       // mount children first, since some props may rely on child content
       // being already rendered, e.g. `<select value>`
+      // 先去挂载子节点 因为某些道具可能依赖于已渲染的子对象内容
+      // 例如事件监听
       if (shapeFlag & ShapeFlags.TEXT_CHILDREN) {
+        // 直接设置子节点 在子节点是文本子节点情况下
         hostSetElementText(el, vnode.children as string)
       } else if (shapeFlag & ShapeFlags.ARRAY_CHILDREN) {
+        // array children
         mountChildren(
           vnode.children as VNodeArrayChildren,
           el,
@@ -789,6 +812,7 @@ function baseCreateRenderer(
     }
   }
 
+  // 挂载子节点
   const mountChildren: MountChildrenFn = (
     children,
     container,
@@ -801,9 +825,11 @@ function baseCreateRenderer(
     start = 0
   ) => {
     for (let i = start; i < children.length; i++) {
+      // 子节点的优化和标准化
       const child = (children[i] = optimized
         ? cloneIfMounted(children[i] as VNode)
         : normalizeVNode(children[i]))
+      // 开始挂载
       patch(
         null,
         child,
@@ -1083,6 +1109,7 @@ function baseCreateRenderer(
     }
   }
 
+  // 组件更新进入的第一个函数
   const processFragment = (
     n1: VNode | null,
     n2: VNode,
@@ -1099,7 +1126,7 @@ function baseCreateRenderer(
     // fragment 结束的位置
     const fragmentEndAnchor = (n2.anchor = n1 ? n1.anchor : hostCreateText(''))!
 
-    // patchFlag：那些是动态的 dynamicChildren：动态的子节点 slotScopeIds：作用域插槽的索引
+    // patchFlag：那些是动态的 dynamicChildren：动态的子节点 slotScopeIds：插槽作用域的id
     let { patchFlag, dynamicChildren, slotScopeIds: fragmentSlotScopeIds } = n2
 
     if (__DEV__ && isHmrUpdating) {
@@ -1122,6 +1149,7 @@ function baseCreateRenderer(
       // a fragment can only have array children
       // since they are either generated by the compiler, or implicitly created
       // from arrays.
+      // 在没有旧节点的情况下 新节点必须要由 arrayChildren 
       mountChildren(
         n2.children as VNodeArrayChildren,
         container,
@@ -1170,6 +1198,8 @@ function baseCreateRenderer(
         // for keyed & unkeyed, since they are compiler generated from v-for,
         // each child is guaranteed to be a block so the fragment will never
         // have dynamicChildren.
+        // 键控和非键控或者是fragments
+        // 键控和非键控 其实也是由vFor编译之后所产生的片段 他们一定没有dynamicChildren
         patchChildren(
           n1,
           n2,
@@ -1196,8 +1226,12 @@ function baseCreateRenderer(
     slotScopeIds: string[] | null,
     optimized: boolean
   ) => {
+    // 设置插槽作用域
     n2.slotScopeIds = slotScopeIds
+    // n1 是旧的组件VNode 有是更新组件 没有就是初始化挂载组件
     if (n1 == null) {
+      // 如果这个组件是有经过缓存的 没有被卸载 这种情况也没有旧的VNode
+      // 这是直接去找旧的缓存的VNode
       if (n2.shapeFlag & ShapeFlags.COMPONENT_KEPT_ALIVE) {
         ;(parentComponent!.ctx as KeepAliveContext).activate(
           n2,
@@ -1219,10 +1253,12 @@ function baseCreateRenderer(
         )
       }
     } else {
+      // 更新DOM
       updateComponent(n1, n2, optimized)
     }
   }
 
+  // 
   const mountComponent: MountComponentFn = (
     initialVNode,
     container,
@@ -1340,6 +1376,7 @@ function baseCreateRenderer(
     }
   }
 
+  // 安装渲染副作用
   const setupRenderEffect: SetupRenderEffectFn = (
     instance,
     initialVNode,
@@ -1349,25 +1386,33 @@ function baseCreateRenderer(
     isSVG,
     optimized
   ) => {
+    // 这个函数主要作用有两个：初次挂载节点和更新旧节点
     const componentUpdateFn = () => {
+      // instance.isMounted的作用是表示当前组件实例是否挂载了
       if (!instance.isMounted) {
         let vnodeHook: VNodeHook | null | undefined
         const { el, props } = initialVNode
+        // bm 代表 组合式API onBeforeMount() 生命周期钩子函数
+        // m 代表 组合式API onMounted 生命周期钩子函数
+        // parent 是当前组件实例的父组件实例
         const { bm, m, parent } = instance
         const isAsyncWrapperVNode = isAsyncWrapper(initialVNode)
 
+        // 在处理组件一些东西的时候，如钩子函数等等 不允许去递归
         effect.allowRecurse = false
         // beforeMount hook onBeforeMount()
         if (bm) {
           invokeArrayFns(bm)
         }
         // onVnodeBeforeMount
+        // 异步组件即将开始挂载的生命周期函数 可能是Suspense类型节点
         if (
           !isAsyncWrapperVNode &&
           (vnodeHook = props && props.onVnodeBeforeMount)
         ) {
           invokeVNodeHook(vnodeHook, parent, initialVNode)
         }
+        // 兼容vue2的 option api 派发一个 beforeMount 生命周期钩子函数
         if (
           __COMPAT__ &&
           isCompatEnabled(DeprecationTypes.INSTANCE_EVENT_HOOKS, instance)
@@ -1375,10 +1420,15 @@ function baseCreateRenderer(
           // beforeMount() {}
           instance.emit('hook:beforeMount')
         }
+        // 开始挂载组件 允许递归
         effect.allowRecurse = true
 
+        // 先 服务端渲染(Server Side Render) 
         if (el && hydrateNode) {
           // vnode has adopted host node - perform hydration instead of mount.
+          // 服务端渲染不是挂载 而是通过hydrateNode将数据渲染到结构中
+          // hydrateNode 是结构 hydrate树数据 两者通过 createHydrationFunctions 进行创建
+          // 还有一些渲染和更新的函数
           const hydrateSubTree = () => {
             if (__DEV__) {
               startMeasure(instance, `render`)
@@ -1408,12 +1458,16 @@ function baseCreateRenderer(
               // which means it won't track dependencies - but it's ok because
               // a server-rendered async wrapper is already in resolved state
               // and it will never need to change.
+              // 注意：我们正在将呈现调用移动到一个异步回调中，这意味着它不会跟踪依赖项-
+              // 但这没有问题，因为服务器呈现的异步包装器(Suspense)已经处于已解析状态，它永远不需要更改。
               () => !instance.isUnmounted && hydrateSubTree()
             )
           } else {
+            // 直接更新数据
             hydrateSubTree()
           }
         } else {
+        // 不是Server Side Render 是客户端渲染(Client Side Render)
           if (__DEV__) {
             startMeasure(instance, `render`)
           }
@@ -1440,6 +1494,7 @@ function baseCreateRenderer(
           if (__DEV__) {
             endMeasure(instance, `patch`)
           }
+          // 更新el
           initialVNode.el = subTree.el
         }
         // mounted hook onMounted()
@@ -1447,6 +1502,7 @@ function baseCreateRenderer(
           queuePostRenderEffect(m, parentSuspense)
         }
         // onVnodeMounted
+        // 异步组件的挂载完毕的生命周期函数 在节点类型是 Suspense
         if (
           !isAsyncWrapperVNode &&
           (vnodeHook = props && props.onVnodeMounted)
@@ -1457,6 +1513,7 @@ function baseCreateRenderer(
             parentSuspense
           )
         }
+        // 兼容vue2的option API mounted生命周期函数配置
         if (
           __COMPAT__ &&
           isCompatEnabled(DeprecationTypes.INSTANCE_EVENT_HOOKS, instance)
@@ -1466,10 +1523,15 @@ function baseCreateRenderer(
             parentSuspense
           )
         }
+        // 这两个生命周期都需要进入队列 等待VNode渲染完成之后才会执行
 
         // activated hook for keep-alive roots.
         // #1742 activated hook must be accessed after first render
         // since the hook may be injected by a child keep-alive
+        // 如果这个组件时被keep-alive缓存过(vue2就会有一个activated函数) 
+        // 组件实例上就有一个a作为 在缓存组件被激活时被调用
+        // 且都是在渲染队列中 等待渲染完成在调用
+        // 但是服务器渲染不会有此钩子函数
         if (initialVNode.shapeFlag & ShapeFlags.COMPONENT_SHOULD_KEEP_ALIVE) {
           instance.a && queuePostRenderEffect(instance.a, parentSuspense)
           if (
@@ -1482,6 +1544,7 @@ function baseCreateRenderer(
             )
           }
         }
+        // 组件挂载完成的标识
         instance.isMounted = true
 
         if (__DEV__ || __FEATURE_PROD_DEVTOOLS__) {
@@ -1489,11 +1552,15 @@ function baseCreateRenderer(
         }
 
         // #2458: deference mount-only object parameters to prevent memleaks
+        // 在组件挂载完毕 清除一切 保证内存不会泄露
         initialVNode = container = anchor = null as any
       } else {
-        // updateComponent 组件更新 可能是内部数据发生了变化(next为null)，也可能是父组件发生变化引发子组件diff(next为VNode)
+        // updateComponent 组件更新 
         // This is triggered by mutation of component's own state (next: null)
         // OR parent calling processComponent (next: VNode)
+        // 可能是内部数据发生了变化(next为null)，也可能是父组件发生变化引发子组件diff(next为VNode)
+        // bu 代表 组合式API onBeforeUpdate 生命周期钩子函数
+        // u 代表 组合式API onUpdated 生命周期钩子函数
         let { next, bu, u, parent, vnode } = instance
         let originNext = next
         let vnodeHook: VNodeHook | null | undefined
@@ -2069,6 +2136,12 @@ function baseCreateRenderer(
         : EMPTY_ARR
       j = increasingNewIndexSequence.length - 1
       // looping backwards so that we can use last patched node as anchor
+      // 从后面开始循环 以便我们可以使用最后一个修补的节点作为锚点
+      // 找出新节点中的最长递增子序列(也可以说是那些没有变化的结果)，移动不在该范围的节点
+      // 如：原本是[1, 2, 3, 4, 5, 6] 修改之后=> [3, 1, 4, 5, 6, 2]
+      // 那么最长递增子序列就是 [3, 4, 5, 6] 可以直接看出只有1和2移动了,
+      // 所以移动的依据判断这个节点是否在这个序列中
+      // 且在移动的时候,是通过找到当前节点在新节点列表中位置的下一个 通过 insertBefore 进行移动
       for (i = toBePatched - 1; i >= 0; i--) {
         const nextIndex = s2 + i
         const nextChild = c2[nextIndex] as VNode
@@ -2092,7 +2165,7 @@ function baseCreateRenderer(
           // move if:
           // There is no stable subsequence (e.g. a reverse)
           // OR current node is not among the stable sequence
-          // 如果移动：没有稳定的子序列（例如反向）或当前节点不在稳定序列中
+          // 如果移动：没有稳定的子序列（例如反向）或当前节点不在稳定序列中 进行节点移动
           if (j < 0 || i !== increasingNewIndexSequence[j]) {
             move(nextChild, container, anchor, MoveType.REORDER)
           } else {
@@ -2110,6 +2183,11 @@ function baseCreateRenderer(
     moveType,
     parentSuspense = null
   ) => {
+    // 取出编译时产生的标记以及其他的一些东西 
+    // 最重要的是 shapeFlag 和 el
+    // shapeFlag 说明了当前节点包含说明：组件？文本？详细见shapeFlag.ts文件
+    // el 是当前节点的真实元素
+    // 下面是根据shapeFlag执行不同的move函数(经过一些包装) 但是最后都是调用这个move方法
     const { el, type, transition, children, shapeFlag } = vnode
     if (shapeFlag & ShapeFlags.COMPONENT) {
       move(vnode.component!.subTree, container, anchor, moveType)
@@ -2141,11 +2219,18 @@ function baseCreateRenderer(
     }
 
     // single nodes
+    // needTransition 确认是不是需要动画过渡
     const needTransition =
       moveType !== MoveType.REORDER &&
       shapeFlag & ShapeFlags.ELEMENT &&
       transition
     if (needTransition) {
+      // 判断是进入动画 还是退出动画
+      // transition 是内置组件transition实现的一些hook 
+      //  beforeEnter(即将进入) enter(进入) leave(离开) clone(主要作用：
+      // 将vnode.transition上的hook函数克隆一份放到vnode上，在渲染器的某个时刻执行)
+      // 还有其他的很多hook
+      // 具体实现可以去看BaseTransition.ts 这里就先不展开
       if (moveType === MoveType.ENTER) {
         transition!.beforeEnter(el!)
         hostInsert(el!, container, anchor)
@@ -2411,6 +2496,7 @@ function baseCreateRenderer(
     if (__FEATURE_SUSPENSE__ && vnode.shapeFlag & ShapeFlags.SUSPENSE) {
       return vnode.suspense!.next()
     }
+    // nextSibling: node => node.nextSibling 获取下一个兄弟节点
     return hostNextSibling((vnode.anchor || vnode.el)!)
   }
 
@@ -2418,16 +2504,19 @@ function baseCreateRenderer(
   const render: RootRenderFunction = (vnode, container, isSVG) => {
     if (vnode == null) {
       if (container._vnode) {
+        // VNode不存在 但是页面上存在东西 需要删除
         unmount(container._vnode, null, null, true)
       }
     } else {
       // 判断之前是否有虚拟DOM 有进行diff 没有直接初始化 挂载
       patch(container._vnode || null, vnode, container, null, null, null, isSVG)
     }
+    // 执行等待渲染完成才执行的函数
     flushPostFlushCbs()
     container._vnode = vnode
   }
 
+  // DOM 更新和挂载时用到的一些函数
   const internals: RendererInternals = {
     p: patch,
     um: unmount,
@@ -2550,6 +2639,7 @@ export function setRef(
   }
 }
 
+// 同步的带错误的执行生命周期钩子函数
 export function invokeVNodeHook(
   hook: VNodeHook,
   instance: ComponentInternalInstance | null,

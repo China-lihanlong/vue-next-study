@@ -2,6 +2,7 @@ import { RendererOptions } from '@vue/runtime-core'
 
 export const svgNS = 'http://www.w3.org/2000/svg'
 
+// 可能是浏览器的Document
 const doc = (typeof document !== 'undefined' ? document : null) as Document
 
 const staticTemplateCache = new Map<string, DocumentFragment>()
@@ -19,11 +20,15 @@ export const nodeOps: Omit<RendererOptions<Node, Element>, 'patchProp'> = {
     }
   },
 
+  // 重写创建元素的方法
   createElement: (tag, isSVG, is, props): Element => {
+    // 创建元素节点 可能是SVG 或者是普通元素
+    // is: 自定义标签名字
     const el = isSVG
       ? doc.createElementNS(svgNS, tag)
       : doc.createElement(tag, is ? { is } : undefined)
 
+    // 设置特殊属性multiple
     if (tag === 'select' && props && props.multiple != null) {
       ;(el as HTMLSelectElement).setAttribute('multiple', props.multiple)
     }
@@ -45,6 +50,7 @@ export const nodeOps: Omit<RendererOptions<Node, Element>, 'patchProp'> = {
 
   parentNode: node => node.parentNode as Element | null,
 
+  // 返回下一个兄弟节点
   nextSibling: node => node.nextSibling,
 
   querySelector: selector => doc.querySelector(selector),
