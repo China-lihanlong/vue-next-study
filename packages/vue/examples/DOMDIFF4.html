@@ -1,0 +1,54 @@
+<div id="app">
+  <div style="position: relative;">
+    <h3>Tooltips with Vue 3 Teleport</h3>
+    <modal-button></modal-button>
+  </div>
+</div>
+<div id="someId">
+
+</div>
+<script src="../dist/vue.global.js"></script>
+<script>
+  const { createApp, reactive, ref } = Vue
+  const App = {
+    setup() {
+
+    }
+  }
+
+  const modalButton = {
+    template:
+      `
+    <button @click="open">
+      Open full screen model!(With teleport)
+    </button>
+
+    <teleport to="#someId">
+      <div v-if="modalOpen" class="modal">
+        <div>
+          I'm a teleported modal! 
+          (My parent is "body")
+          <button @click="close">
+            Close
+          </button>
+        </div>
+      </div>
+    </teleport>
+    `,
+    data() {
+      return {
+        modalOpen: false
+      }
+    },
+    methods: {
+      open() {
+        this.modalOpen = true
+      },
+      close() {
+        this.modalOpen = false
+      }
+    }
+  }
+
+  const app = createApp(App).component('modalButton', modalButton).mount('#app')
+</script>

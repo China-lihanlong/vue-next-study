@@ -397,6 +397,7 @@ function baseCreateRenderer(
 
     // 第一次进来 type 是根组建的配置对象 所以会执行 if(shapeFlag & ShapeFlags.COMPONENT) 中的逻辑 也就是执行 processComponent 函数
     // 在对比节点列表的情况下(vFor渲染出来的) 大部分情况下都是进入patchElement
+    // 如果是teleport 会进入来一个teleport的配置对象
     const { type, ref, shapeFlag } = n2
     switch (type) {
       case Text: /* 文本 */
@@ -1559,8 +1560,11 @@ function baseCreateRenderer(
         // This is triggered by mutation of component's own state (next: null)
         // OR parent calling processComponent (next: VNode)
         // 可能是内部数据发生了变化(next为null)，也可能是父组件发生变化引发子组件diff(next为VNode)
+        // 也就是组件依赖父组件的props 会影响VNode渲染 props改变 子组件就会受到影响
         // bu 代表 组合式API onBeforeUpdate 生命周期钩子函数
         // u 代表 组合式API onUpdated 生命周期钩子函数
+        // parent 是当前更新的实例的父组件实例
+        // next 是 新的VNode vnode是旧的VNode
         let { next, bu, u, parent, vnode } = instance
         let originNext = next
         let vnodeHook: VNodeHook | null | undefined
@@ -1569,9 +1573,12 @@ function baseCreateRenderer(
         }
 
         // Disallow component effect recursion during pre-lifecycle hooks.
+        // 在beforeUpdate生命周期函数执行期间不允许递归执行 防止重复收集
+        // 组件可能会影响到子组件的变化 防止在更新子组件的时候重复收集依赖
         effect.allowRecurse = false
 
         // 如果只是数据变化，next为null 如果数据变化引发了diff next为VNode
+        // 父组件引发组件的改变 组件的VNode会发生变化 需要去更新
         if (next) {
           next.el = vnode.el
           updateComponentPreRender(instance, next, optimized)
@@ -1580,13 +1587,16 @@ function baseCreateRenderer(
         }
 
         // beforeUpdate hook
+        // 执行 组合式API onBeforeUpdate 生命周期函数
         if (bu) {
           invokeArrayFns(bu)
         }
         // onVnodeBeforeUpdate
+        // 异步组件的挂载完毕的生命周期函数 在节点类型是 Suspense
         if ((vnodeHook = next.props && next.props.onVnodeBeforeUpdate)) {
           invokeVNodeHook(vnodeHook, parent, next, vnode)
         }
+        // vue2 beforeUpdate options api 生命周期函数
         if (
           __COMPAT__ &&
           isCompatEnabled(DeprecationTypes.INSTANCE_EVENT_HOOKS, instance)
@@ -1614,13 +1624,16 @@ function baseCreateRenderer(
         if (__DEV__) {
           startMeasure(instance, `patch`)
         }
-        // 更新渲染 新旧VNode做diff
+        // 更新渲染 新旧VNode做diff 这里是开始的地方
         patch(
           prevTree,
           nextTree,
           // parent may have changed if it's in a teleport
+          // teleport 通过to属性来确认当前在那个父节点(这个父节点最后不在vue树之中，最好在渲染之前就存在)中渲染该节点
+          // to可以通过props接受指定的，可以通过修改to改变该节点渲染的位置，这也意味着父节点的改变，需要重新确认父节点
           hostParentNode(prevTree.el!)!,
           // anchor may have changed if it's in a fragment
+          // 当前节点在一个fragment中,更新可能会导致兄弟节点变成其他节点,需要确认
           getNextHostNode(prevTree),
           instance,
           parentSuspense,
@@ -1641,12 +1654,14 @@ function baseCreateRenderer(
           queuePostRenderEffect(u, parentSuspense)
         }
         // onVnodeUpdated
+        // 异步组件的挂载完毕的生命周期函数 在节点类型是 Suspense
         if ((vnodeHook = next.props && next.props.onVnodeUpdated)) {
           queuePostRenderEffect(
             () => invokeVNodeHook(vnodeHook!, parent, next!, vnode),
             parentSuspense
           )
         }
+        // 兼容vue2 生命周期函数 updated
         if (
           __COMPAT__ &&
           isCompatEnabled(DeprecationTypes.INSTANCE_EVENT_HOOKS, instance)
@@ -1706,6 +1721,7 @@ function baseCreateRenderer(
     update()
   }
 
+  // 更新组件实例中的VNode 以及props和slots
   const updateComponentPreRender = (
     instance: ComponentInternalInstance,
     nextVNode: VNode,
@@ -1717,15 +1733,19 @@ function baseCreateRenderer(
     const prevProps = instance.vnode.props
     // 组件实例本身也会存储最新的VNode
     instance.vnode = nextVNode
+    // 将next重新赋值为null
     instance.next = null
+    // 更新属性和插槽
     updateProps(instance, nextVNode.props, prevProps, optimized)
     updateSlots(instance, nextVNode.children, optimized)
 
+    // 暂停全局追踪
     pauseTracking()
     // props update may have triggered pre-flush watchers.
     // flush them before the render update.
     // 更新props 可能会触发它们的watchers 需要在进行patch之前，将他们全部执行一遍
     flushPreFlushCbs(undefined, instance.update)
+    // 返回之前的track状态
     resetTracking()
   }
 

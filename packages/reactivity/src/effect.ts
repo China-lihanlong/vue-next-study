@@ -80,6 +80,30 @@ export const MAP_KEY_ITERATE_KEY = Symbol(__DEV__ ? 'Map key iterate' : '')
 
 // 通过实例化ReactiveEffect可以产生一个effect，但是effect的所有东西需要用户自己控制
 // 其他大部分的响应式api都是通过这个实现
+/**
+ * 在vue2中有一个Watcher类 但是在vue3中ReactiveEffect这个类被取代了
+ * ReactiveEffect实例化会产生一个effect，这个就是依赖
+ * vue2中Watcher 分为三种 lazy Watcher、user Watcher以及render Watcher
+ * 分别是由 computed 、数据依赖和渲染函数产生的
+ * render Watcher 在VNode渲染或者更新阶段的时候才会执行
+ * 
+ *  lazy Watcher 在获取时才会执行 比较常见的就是由computed属性产生
+ *  其内部会有一个缓存，只有最新的计算值和缓存不同 才会去触发依赖 通知更新
+ *  在每次执行前，都会判断最新值是否和缓存的值相同，只有不同才会执行
+ *  在设置computed的值时，只有在set中去修改依赖的数据才会发生变化
+ *  
+ *  use Watacher 在数据变化的时候就会通知执行 比较常见的由watch属性产生
+ *  这种情况也分很多种，同步的watcher、异步的watcher、单多源的watcher、会不会更新依赖的watcher
+ *  最终都是在数据变化的时候，这是执行时机不同 主要分为直接执行和进入队列等待渲染完成才执行
+ * 
+ *  render Watcher 是每一个组件都会有的 也就是一个组件一个渲染Watcher，
+ *  产生的原因是渲染函数render对数据有依赖，会对页面进行渲染或者更新，在数据变化的之后
+ * 
+ *  vue3我感受不到watcher的存在，但是vue3全局有一个名字叫做targetMap的WeakMap对象，用来存储依赖和数据之间的关系
+ *  其很好的说明了依赖关系，在收集依赖阶段，在获取数据时，会将收集到effect通过dep包装(为了优化)之后放到targetMap上
+ *  派发更新阶段，就会去遍历targetMap，找到对应的dep进行遍历执行更新
+ *  
+ */
 export class ReactiveEffect<T = any> {
   active = true
   // 将当前的归属于当前effect的所有的dep存储于自己本身 方便以后直接读取
@@ -213,7 +237,7 @@ export function effect<T = any>(
   // 创建一个 wrapper _effect 是一个响应式的副作用函数
   const _effect = new ReactiveEffect(fn)
   if (options) {
-    // 拷贝options中的属性到_effect中
+    // 拷贝options配置对象中的属性到_effect中
     extend(_effect, options)
     // effectScope 相关处理逻辑 确认_effect的作用范围
     if (options.scope) recordEffectScope(_effect, options.scope)
@@ -407,6 +431,7 @@ export function trigger(
     : undefined
 
   if (deps.length === 1) {
+    // 这里因为前面已经优化过了 这里不需要再次优化
     // 两个可能是都是由同一个依赖发出的嵌套依赖(一个是数据变化，一个是长度变化)
     // 但是由于前面的优化 一次只有一个依赖存在 
     // 就算有多个副作用函数 也只能一个个执行
@@ -418,7 +443,8 @@ export function trigger(
       }
     }
   } else {
-    // 如果有多个，则需要用createDep包装 (加上 w n标记) 为了方便优化
+    // 用createDep包装 (加上 w n标记) 为了方便优化
+    // 多个effect要执行
     const effects: ReactiveEffect[] = []
     for (const dep of deps) {
       if (dep) {
@@ -449,7 +475,7 @@ export function triggerEffects(
       // 这里调度函数一般都是在doWatch中产生(watch和watchEffect的核心逻辑都是在doWatch)
       // 调度函数只要作用在于可以把队列函数job丢入异步渲染队列
       // 在调用函数存在情况 fn函数就是doWatch包装过的getter函数 
-      // 在其他情况一般都是组件的componentUpdateFn函数
+      // 在其他情况一般都是直接执行，执行effect中的fn函数(更新组件调用是的componentUpdateFn函数)
       if (effect.scheduler) {
         effect.scheduler()
       } else {

@@ -1,0 +1,40 @@
+<div id="app">
+  <todo-button :show="show"></todo-button>
+  <button @click="changeShow">changeShow</button>
+</div>
+<script src="../dist/vue.global.js"></script>
+<script>
+  const { createApp, ref } = Vue
+  const App = {
+    setup() {
+      const counter = ref(0)
+      function addCounter() {
+        counter.value++
+      }
+      const show = ref(false)
+      function changeShow() {
+        show.value = !show.value
+      }
+      return {
+        counter,
+        addCounter,
+        show,
+        changeShow
+      }
+    }
+  }
+
+  const children = {
+    props: {
+      show: Boolean
+    },
+    template:
+      `
+    <p class="btn-primary" v-if="show">
+      counter
+    </p>
+    `
+  }
+
+  const app = createApp(App).component('todo-button', children).mount('#app')
+</script>
