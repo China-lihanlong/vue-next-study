@@ -409,6 +409,7 @@ function createBaseVNode(
     type,
     props,
     key: props && normalizeKey(props),
+    // 模板引用
     ref: props && normalizeRef(props),
     scopeId: currentScopeId,
     slotScopeIds: null,
@@ -706,27 +707,31 @@ export function createCommentVNode(
 
 export function normalizeVNode(child: VNodeChild): VNode {
   if (child == null || typeof child === 'boolean') {
-    // empty placeholder
+    // empty placeholder //空占位符
     return createVNode(Comment)
   } else if (isArray(child)) {
-    // fragment
+    // fragment // 这是组件子元素 内部可能是多个子元素的
     return createVNode(
       Fragment,
       null,
       // #3666, avoid reference pollution when reusing vnode
+      // 重复使用组件vnode时避免引用污染
       child.slice()
     )
   } else if (typeof child === 'object') {
     // already vnode, this should be the most common since compiled templates
     // always produce all-vnode children arrays
+    // vnode已经存在，这应该是自编译模板以来最常见的
+    // 始终生成所有vnode子数组
     return cloneIfMounted(child)
   } else {
-    // strings and numbers
+    // strings and numbers // 字符串或者
     return createVNode(Text, null, String(child))
   }
 }
 
 // optimized normalization for template-compiled render fns
+// 模板编译渲染函数的优化规范化
 export function cloneIfMounted(child: VNode): VNode {
   return child.el === null || child.memo ? child : cloneVNode(child)
 }

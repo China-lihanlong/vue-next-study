@@ -1,7 +1,8 @@
 <div id="app">
   <div style="position: relative;">
+    <button @click="changeTo">changeTo</button>
     <h3>Tooltips with Vue 3 Teleport</h3>
-    <modal-button></modal-button>
+    <modal-button :to="to" :onVnodeMounted="onVnodeMounted"></modal-button>
   </div>
 </div>
 <div id="someId">
@@ -12,40 +13,56 @@
   const { createApp, reactive, ref } = Vue
   const App = {
     setup() {
-
+      const to = ref('#someId')
+      function changeTo() {
+        to.value === '#someId' ? to.value = '#someId2' : to.value = '#someId'
+      }
+      return {
+        to,
+        changeTo,
+      }
+    },
+    methods: {
+      onVnodeMounted() {
+        console.log('MODALBUTTON挂载完毕')
+      }
     }
   }
 
   const modalButton = {
     template:
       `
-    <button @click="open">
-      Open full screen model!(With teleport)
-    </button>
+    <div>
+      <button @click="changeData">
+        changeData
+      </button>
 
-    <teleport to="#someId">
-      <div v-if="modalOpen" class="modal">
-        <div>
-          I'm a teleported modal! 
-          (My parent is "body")
-          <button @click="close">
-            Close
-          </button>
-        </div>
-      </div>
-    </teleport>
+      <teleport to="#someId">
+        <ul class="modal">
+          <li v-for="(item, index) in items" :key="index">{{ item }}</li>
+        </ul>
+      </teleport>  
+    </div>
     `,
-    data() {
-      return {
-        modalOpen: false
-      }
-    },
-    methods: {
-      open() {
-        this.modalOpen = true
+    props: {
+      onVnodeMounted: {
+        type: Function,
+        default: () => {}
       },
-      close() {
-        this.modalOpen = false
+    },
+
+    setup() {
+      const items = reactive([0, 1, 2, 3, 4])
+      function changeData() {
+        items[0] = 2
+        items[1] = 0
+        items[2] = 3
+        items[3] = 1
+        items[4] = 4
+      }
+      return {
+        items,
+        changeData
       }
     }
   }

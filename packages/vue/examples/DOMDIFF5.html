@@ -1,0 +1,114 @@
+<div id="app"></div>
+<script src="../dist/vue.global.js"></script>
+<script>
+  const { createApp, reactive, ref, h, onBeforeMount, onBeforeUpdate, onUpdated, watch } = Vue
+  /**
+   * 和vnode相关的生命周期函数
+   * onVnodeBeforeMount
+   * onVnodeMounted
+   * onVnodeBeforeUpdate
+   * onVnodeUpdated
+   * onVnodeBeforeUnmount
+   * onVnodeUnmounted
+   */
+  const Children = {
+    template: `
+        <div v-for="(item, index) in items" :key="item.id">
+          {{ item }}
+        </div> 
+    `,
+    setup() {
+      const items = reactive([0, 1, 2, 3, 4])
+
+
+      /*  function changeData() {
+         items[0] = 2
+         items[1] = 0
+         items[2] = 3
+         items[3] = 1
+         items[4] = 4
+       } */
+
+      const uls = ref()
+
+      let itemsRef = []
+
+      function liChild(el) {
+        if (el) {
+          itemsRef.push(el)
+        }
+      }
+
+      function change() {
+        uls.value = 10
+      }
+      return {
+        items,
+        liChild,
+        // changeData,
+        change,
+        itemsRef,
+        uls
+      }
+    },
+
+    methods: {
+      logChild() {
+        console.log(this.itemsRef)
+      }
+    },
+
+    compatConfig: {
+      V_FOR_REF: true,
+    }
+  }
+
+  const App = {
+    template: `
+      <div>
+        <Children :ref="refDom"/> 
+        <br />
+        <button @click="logChildren">refs</button>
+        <button @click="changeIsShowChildren">chilren显示/隐藏</button>
+      </div>
+    `,
+
+    created() {
+      this.Children = null
+    },
+    setup() {
+      const refDom = ref(null)
+      const isShowChildren = ref(true)
+      function changeIsShowChildren() {
+        isShowChildren.value = !isShowChildren.value
+      }
+
+      function changeRefDom() {
+        refDom.value = 'refDoms'
+      }
+
+      let refDoms = ''
+
+      return {
+        isShowChildren,
+        changeIsShowChildren,
+        refDom,
+        refDoms,
+        changeRefDom,
+      }
+    },
+    components: {
+      Children,
+    },
+
+    methods: {
+      logChildren() {
+        this.changeRefDom()
+        console.log(this)
+        console.log(this.$refs)
+      }
+    }
+  }
+
+  const app = createApp(App).mount('#app')
+</script>

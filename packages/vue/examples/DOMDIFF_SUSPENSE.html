@@ -1,0 +1,48 @@
+<div id="app"></div>
+<script src="../dist/vue.global.js"></script>
+<script>
+  const { createApp, ref } = Vue
+
+  const Users = {
+
+    template: `
+      <div v-for="user in users" :key="user.id">
+        姓:{{user.first_name}}, 名:{{user.last_name}}
+      </div>
+    `,
+
+    async setup() {
+      const users = ref(null)
+      const usersResponse = await fetch('https://reqres.in/api/users?delay=2')
+      const result = await usersResponse.json()
+      users.value = result.data
+
+      return { users }
+    }
+  }
+
+  const App = {
+
+    template: `
+      <div>
+        <Suspense>
+          <template #default>
+            <Users />
+          </template>  
+          <template #fallback>
+            <div>User Info Loading...</div>
+          </template>  
+        </Suspense>  
+      </div>
+    `,
+    setup() {
+
+    },
+
+    components: {
+      Users
+    }
+  }
+
+  const app = createApp(App).mount('#app')
+</script>

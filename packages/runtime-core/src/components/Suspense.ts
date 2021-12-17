@@ -32,18 +32,24 @@ export interface SuspenseProps {
   timeout?: string | number
 }
 
+// 判断是否为Suspense
 export const isSuspense = (type: any): boolean => type.__isSuspense
 
 // Suspense exposes a component-like API, and is treated like a component
 // in the compiler, but internally it's a special built-in type that hooks
 // directly into the renderer.
+// Suspense 暴露了一个类似组件的 API，在编译器中被视为组件，但在内部它是一个特殊的内置类型，
+// 它直接挂钩到渲染器中
 export const SuspenseImpl = {
   name: 'Suspense',
   // In order to make Suspense tree-shakable, we need to avoid importing it
   // directly in the renderer. The renderer checks for the __isSuspense flag
   // on a vnode's type and calls the `process` method, passing in renderer
   // internals.
+  // 为了使 Suspense tree-shakable，我们需要避免在渲染器中直接导入。 渲染器检查 vnode 类型上的 
+  // __isSuspense 标志并调用 `process` 方法，传入渲染器内部。
   __isSuspense: true,
+  // 挂载方法
   process(
     n1: VNode | null,
     n2: VNode,
@@ -55,8 +61,10 @@ export const SuspenseImpl = {
     slotScopeIds: string[] | null,
     optimized: boolean,
     // platform-specific impl passed from renderer
+    // 从渲染器传递的特定于平台的实现
     rendererInternals: RendererInternals
   ) {
+    // 旧的存在就更新 不存咋的就挂载
     if (n1 == null) {
       mountSuspense(
         n2,
@@ -386,6 +394,7 @@ export interface SuspenseBoundary {
 
 let hasWarned = false
 
+// 创建Susoense边界
 function createSuspenseBoundary(
   vnode: VNode,
   parent: SuspenseBoundary | null,
@@ -400,6 +409,8 @@ function createSuspenseBoundary(
   isHydrating = false
 ): SuspenseBoundary {
   /* istanbul ignore if */
+  // Suspense 是一个还在测试的API 可能还会改变 请不要在生产环境环境中使用
+  // hasWarned 是否已经提示过这是一个测试API
   if (__DEV__ && !__TEST__ && !hasWarned) {
     hasWarned = true
     // @ts-ignore `console.info` cannot be null error
@@ -408,6 +419,7 @@ function createSuspenseBoundary(
     )
   }
 
+  // 从渲染器传递的特定于平台的实现
   const {
     p: patch,
     m: move,
@@ -416,15 +428,16 @@ function createSuspenseBoundary(
     o: { parentNode, remove }
   } = rendererInternals
 
+  // 外界可以设置多长时间超时
   const timeout = toNumber(vnode.props && vnode.props.timeout)
   const suspense: SuspenseBoundary = {
     vnode,
     parent,
     parentComponent,
     isSVG,
-    container,
-    hiddenContainer,
-    anchor,
+    container, // 最先显示的容器
+    hiddenContainer, // 正在请求内容的容器 但是由于可能会请求失败 也许不会显示
+    anchor, // 内容的兄弟节点
     deps: 0,
     pendingId: 0,
     timeout: typeof timeout === 'number' ? timeout : -1,
@@ -435,6 +448,7 @@ function createSuspenseBoundary(
     isUnmounted: false,
     effects: [],
 
+    // 下面的是一系列操作方法
     resolve(resume = false) {
       if (__DEV__) {
         if (!resume && !suspense.pendingBranch) {

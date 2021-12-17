@@ -1,0 +1,37 @@
+<div id="app">
+  <div @click="pushList" v-fontredcolor v-for="(item, index) in list">{{ item }}</div>
+  <Suspense></Suspense>
+</div>
+<script src="../dist/vue.global.js"></script>
+<script>
+  const { createApp, ref } = Vue
+
+  const App = {
+    setup() {
+      let list = ref([0, 1, 2, 3, 4])
+      function pushList() {
+        list.value = '数组'
+      }
+      return {
+        list,
+        pushList
+      }
+    },
+
+    directives: {
+      fontredcolor: {
+
+        mounted(el) {
+          console.log(el)
+          el.style.color="red"
+        },
+
+        beforeUnmount() {
+          console.log('组件被卸载了')
+        }
+      }
+    }
+  }
+
+  const app = createApp(App).mount('#app')
+</script>

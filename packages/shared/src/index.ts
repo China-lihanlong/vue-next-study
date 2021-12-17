@@ -145,6 +145,7 @@ export const def = (obj: object, key: string | symbol, value: any) => {
   })
 }
 
+// 转换成数字 返回的是数字 也可能是其他东西 
 export const toNumber = (val: any): any => {
   const n = parseFloat(val)
   return isNaN(n) ? val : n

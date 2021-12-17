@@ -13,6 +13,7 @@ export const nodeOps: Omit<RendererOptions<Node, Element>, 'patchProp'> = {
     parent.insertBefore(child, anchor || null)
   },
 
+  // 重写删除当前元素，获取当前元素的父元素 再通过父元素去删除自己
   remove: child => {
     const parent = child.parentNode
     if (parent) {
@@ -36,8 +37,10 @@ export const nodeOps: Omit<RendererOptions<Node, Element>, 'patchProp'> = {
     return el
   },
 
+  // 创建一个文本
   createText: text => doc.createTextNode(text),
 
+  // 创建一个注释
   createComment: text => doc.createComment(text),
 
   setText: (node, text) => {
@@ -53,6 +56,7 @@ export const nodeOps: Omit<RendererOptions<Node, Element>, 'patchProp'> = {
   // 返回下一个兄弟节点
   nextSibling: node => node.nextSibling,
 
+  // 柯里化方法：通过任意选择器获取目标元素
   querySelector: selector => doc.querySelector(selector),
 
   setScopeId(el, id) {

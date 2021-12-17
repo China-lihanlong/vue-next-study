@@ -1,11 +1,8 @@
 <link href="https://cdn.bootcdn.net/ajax/libs/animate.css/4.1.1/animate.css" rel="stylesheet">
 <div id="app">
-  <div v-once>
-    <div>swdadad</div>
-    <div>swdadad</div>
-    <div>swdadad</div>
-    <comp :count="count"></comp>
-  </div>
+  <comp :count="count"></comp>
+  <div>{{ count }}</div>
+  <button @click="addCount">Counter++</button>
 </div>
 <script src="../dist/vue.global.js"></script>
 <script>
@@ -31,11 +28,10 @@
         addCount,
         state,
         pushState,
-        show: ref(false)
       }
     },
 
-    created () {
+    created() {
       console.log('created')
     }
   }
