@@ -59,6 +59,7 @@ export function resolveFilter(name: string): Function | undefined {
  * @private
  * overload 1: components
  */
+// 处理或者兼容v2v3中的组件、指令和过滤器
 function resolveAsset(
   type: typeof COMPONENTS,
   name: string,
@@ -85,6 +86,7 @@ function resolveAsset(
     const Component = instance.type
 
     // explicit self name has highest priority
+    // 设置了名字的组件拥有最高优先级
     if (type === COMPONENTS) {
       const selfName = getComponentName(Component)
       if (
@@ -97,9 +99,12 @@ function resolveAsset(
       }
     }
 
+    // 先进行本地组件注册 之后就是进行全局组件注册
+    // 兼容注册transition与transition-group
     const res =
       // local registration
       // check instance[type] first which is resolved for options API
+      // 首先检查为选项API解析的实例[type]
       resolve(instance[type] || (Component as ComponentOptions)[type], name) ||
       // global registration
       resolve(instance.appContext[type], name)

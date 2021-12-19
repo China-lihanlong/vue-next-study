@@ -1,7 +1,44 @@
 <div id="app"></div>
 <script src="../dist/vue.global.js"></script>
 <script>
-  const { createApp, ref } = Vue
+  const { createApp, ref, defineAsyncComponent } = Vue
+
+  const loading = {
+    template: `<div>Loading....</div>`
+  }
+
+  const GrandSon = {
+    template: `
+      <!--<div v-for="item in data" :key="data.id">
+        id:{{item.id}} name: {{(item.first_name ?? item.name)}}  
+      </div>-->
+      {{data}}
+    `,
+    async setup() {
+      const data = ref(null)
+      const promise = new Promise((resolve, reject) => {
+        setTimeout(() => {
+          resolve('success')
+        }, 5000)
+      })
+      data.value = await promise
+      /* async function getUsers() {
+        const usersResponse = await fetch('https://reqres.in/api/users?delay=2')
+        const result = await usersResponse.json()
+        data.value = result.data
+      }
+
+      async function getList() {
+        const listResponse = await fetch('https://reqres.in/api/list?delay=2')
+        const result = await listResponse.json()
+        data.value = result.data
+      }
+      setTimeout(() => {
+        getUsers()
+      }, 5000) */
+      return { data, /* getList, getUsers */ }
+    }
+  }
 
   const Users = {
 
@@ -18,6 +55,18 @@
       users.value = result.data
 
       return { users }
+    },
+
+    components: {
+      GrandSon: defineAsyncComponent({
+        loader: () => {
+          return new Promise((resolve, reject) => {
+            resolve(GrandSon)
+          })
+        },
+        LoadingComponent: loading,
+        timeout: 3000,
+      }),
     }
   }
 
@@ -27,20 +76,47 @@
       <div>
         <Suspense>
           <template #default>
-            <Users />
-          </template>  
+            <GrandSon />
+          </template>
           <template #fallback>
-            <div>User Info Loading...</div>
-          </template>  
-        </Suspense>  
+            <div>{{type}} Info Loading...</div>
+          </template>
+        </Suspense>
+        <button @click="trigger">trigger</button>
       </div>
     `,
     setup() {
+      const type = ref('users')
+      function trigger() {
+        type.value === 'users' ? type.value = 'grandSon' : type.value = 'users'
+      }
 
+      return {
+        trigger,
+        type
+      }
     },
 
     components: {
-      Users
+      Users: defineAsyncComponent({
+        loader: () => {
+          return new Promise((resolve, reject) => {
+            resolve(Users)
+          })
+        },
+        LoadingComponent: loading,
+        timeout: 3000,
+      }),
+      GrandSon: defineAsyncComponent({
+        loader: () => {
+          return new Promise((resolve, reject) => {
+            resolve(GrandSon)
+          })
+        },
+        LoadingComponent: loading,
+        timeout: 3000,
+      }),
+      Loading: loading
     }
   }
 

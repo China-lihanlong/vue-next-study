@@ -39,11 +39,13 @@ import {
 } from './compatConfig'
 import { compatModelEventPrefix } from './componentVModel'
 
+// 转换v3之前的旧的渲染函数
 export function convertLegacyRenderFn(instance: ComponentInternalInstance) {
   const Component = instance.type as ComponentOptions
   const render = Component.render as InternalRenderFunction | undefined
 
   // v3 runtime compiled, or already checked / wrapped
+  // 如果v3已经进行编译或者检测/打包 直接退出 不在进行v2的渲染函数转换
   if (!render || render._rc || render._compatChecked || render._compatWrapped) {
     return
   }
@@ -52,14 +54,18 @@ export function convertLegacyRenderFn(instance: ComponentInternalInstance) {
     // v3 pre-compiled function, since v2 render functions never need more than
     // 2 arguments, and v2 functional render functions would have already been
     // normalized into v3 functional components
+    // v3预编译函数，因为v2渲染函数永远不需要超过2个参数，而且v2渲染函数已经被规范化为v3函数组件
     render._compatChecked = true
     return
   }
 
   // v2 render function, try to provide compat
+  // v2渲染函数，尝试提供兼容
   if (checkCompatEnabled(DeprecationTypes.RENDER_FUNCTION, instance)) {
+    // wrapped是最后执行完兼容 返回的VNode
     const wrapped = (Component.render = function compatRender() {
       // @ts-ignore
+      // 执行兼容 compatH 函数会对旧插槽、旧指令、旧属性、过滤器进行转换
       return render.call(this, compatH)
     })
     // @ts-ignore
@@ -127,27 +133,44 @@ export function compatH(
   }
 
   // to support v2 string component name look!up
+  // 要支持v2字符串组件名称 请看上面的形参
   if (typeof type === 'string') {
     const t = hyphenate(type)
+    // 兼容v2中内置组件
+    //因为transition和transition-group是特定于运行时dom的，所以我们不能在这里直接导入它们。
+    // 相反，它们是使用@vue/compat条目中的特殊密钥注册的。
     if (t === 'transition' || t === 'transition-group' || t === 'keep-alive') {
       // since transition and transition-group are runtime-dom-specific,
       // we cannot import them directly here. Instead they are registered using
       // special keys in @vue/compat entry.
       type = `__compat__${t}`
     }
+    // 解析注册组件
     type = resolveDynamicComponent(type)
   }
 
+  // 处理用户手写的渲染函数的参数 也就是h函数的参数 最后都会返回一个VNode
   const l = arguments.length
+  // 第二个参数可能是props对象也可能是Children数组
   const is2ndArgArrayChildren = isArray(propsOrChildren)
+  // 只有参数达到两个 或者是 第二参数是数组
+  // h('div', {key1: value1})
+  // h('div', [h('div', {...}, [...])])
+  // h('componentName', VNode)
   if (l === 2 || is2ndArgArrayChildren) {
     if (isObject(propsOrChildren) && !is2ndArgArrayChildren) {
       // single vnode without props
+      // 如果第二参数是vnode代表这是slots
+      // h('componentName', VNode)
       if (isVNode(propsOrChildren)) {
+        // 转换v3版本之前的旧插槽
         return convertLegacySlots(createVNode(type, null, [propsOrChildren]))
       }
       // props without children
+      // 只有props没有children
+      // h('div', {key1: value1})
       return convertLegacySlots(
+        // 节点身上可能会出现v3版本之前的旧指令，需要转换
         convertLegacyDirectives(
           createVNode(type, convertLegacyProps(propsOrChildren, type)),
           propsOrChildren
@@ -155,12 +178,19 @@ export function compatH(
       )
     } else {
       // omit props
+      // 只有children 没有props 
+      // h('div', [h('div', {...}, [...])])
       return convertLegacySlots(createVNode(type, null, propsOrChildren))
     }
   } else {
+    // 到这里说明是给了三个参数 且第二参数必定不是数组
+    // h('div', {key1: value1, key2: value2}, [h('div', {...}, [...])])
+    // h('componentName', {key1: value1, key2: value2}, VNode)
+    // 如果children是VNode 代表是一个旧插槽 但是需要转换成数组去解析
     if (isVNode(children)) {
       children = [children]
     }
+    // 需要转换旧参数 旧指令 旧插槽
     return convertLegacySlots(
       convertLegacyDirectives(
         createVNode(type, convertLegacyProps(propsOrChildren, type), children),

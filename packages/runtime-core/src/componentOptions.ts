@@ -554,14 +554,14 @@ export function applyOptions(instance: ComponentInternalInstance) {
   }
 
   const {
-    // state
+    // state 状态选项处理
     data: dataOptions,
     computed: computedOptions,
     methods,
     watch: watchOptions,
     provide: provideOptions,
     inject: injectOptions,
-    // lifecycle
+    // lifecycle 生命周期函数选项处理
     created,
     beforeMount,
     mounted,
@@ -578,10 +578,10 @@ export function applyOptions(instance: ComponentInternalInstance) {
     renderTriggered,
     errorCaptured,
     serverPrefetch,
-    // public API
+    // public API 公共API选处理
     expose,
     inheritAttrs,
-    // assets
+    // assets 资产选项处理
     components,
     directives,
     filters

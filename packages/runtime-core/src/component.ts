@@ -629,7 +629,7 @@ function setupStatefulComponent(
     exposePropsOnRenderContext(instance)
   }
   // 2. call setup()
-  // 拿出 setup函数 带错误处理的执行
+  // 拿出 setup函数 带错误处理的执行 可能最后会返回Promise
   const { setup } = Component
   if (setup) {
     const setupContext = (instance.setupContext =
@@ -648,8 +648,10 @@ function setupStatefulComponent(
     unsetCurrentInstance()
 
     if (isPromise(setupResult)) {
+      // 无论异步的setup最后结果如何，都要去关闭Supense组件实例的依赖作用域
       setupResult.then(unsetCurrentInstance, unsetCurrentInstance)
 
+      // 服务器渲染的Suspense 在这里进行处理
       if (isSSR) {
         // return the promise so server-renderer can wait on it
         return setupResult
@@ -662,6 +664,8 @@ function setupStatefulComponent(
       } else if (__FEATURE_SUSPENSE__) {
         // async setup returned Promise.
         // bail here and wait for re-entry.
+        // 异步的setup返回的Promise在这里进行保存
+        // 在后面等待执行(执行registerDep)
         instance.asyncDep = setupResult
       } else if (__DEV__) {
         warn(
@@ -685,9 +689,11 @@ export function handleSetupResult(
 ) {
   if (isFunction(setupResult)) {
     // setup returned an inline render function
+    // setup函数返回了一个内联渲染函数
     if (__SSR__ && (instance.type as ComponentOptions).__ssrInlineRender) {
       // when the function's name is `ssrRender` (compiled by SFC inline mode),
       // set it as ssrRender instead.
+      // 当函数名为“ssrRender”（由SFC内联模式编译）时，将其改为ssrRender。
       instance.ssrRender = setupResult
     } else {
       instance.render = setupResult as InternalRenderFunction
@@ -701,9 +707,11 @@ export function handleSetupResult(
     }
     // setup returned bindings.
     // assuming a render function compiled from template is present.
+    // setup函数返回了一个对象 假设一定已经从compiler模板编译中得到渲染函数
     if (__DEV__ || __FEATURE_PROD_DEVTOOLS__) {
       instance.devtoolsRawSetupState = setupResult
     }
+    // 对setup返回的数据对象 进行响应式处理
     instance.setupState = proxyRefs(setupResult)
     if (__DEV__) {
       exposeSetupStateOnRenderContext(instance)
@@ -715,6 +723,7 @@ export function handleSetupResult(
       }`
     )
   }
+  // v2的兼容处理
   finishComponentSetup(instance, isSSR)
 }
 
@@ -750,6 +759,7 @@ export function finishComponentSetup(
   const Component = instance.type as ComponentOptions
 
   if (__COMPAT__) {
+    // 转换v3版本之前的旧渲染函数
     convertLegacyRenderFn(instance)
 
     if (__DEV__ && Component.compatConfig) {
@@ -759,10 +769,13 @@ export function finishComponentSetup(
 
   // template / render function normalization
   // could be already set when returned from setup()
+  // 从setup返回时，模板或者渲染函数已经标准化
   if (!instance.render) {
     // only do on-the-fly compile if not in SSR - SSR on-the-fly compliation
     // is done by server-renderer
+    // 如果不是在SSR中，则仅执行动态编译-SSR动态编译由服务器渲染器完成
     if (!isSSR && compile && !Component.render) {
+      // 只有开启了兼容才会支持v2的内联模板 或者使用组件配置项上的模板
       const template =
         (__COMPAT__ &&
           instance.vnode.props &&
@@ -772,6 +785,7 @@ export function finishComponentSetup(
         if (__DEV__) {
           startMeasure(instance, `compile`)
         }
+        // 获取最终编译配置
         const { isCustomElement, compilerOptions } = instance.appContext.config
         const { delimiters, compilerOptions: componentCompilerOptions } =
           Component
@@ -785,6 +799,7 @@ export function finishComponentSetup(
           ),
           componentCompilerOptions
         )
+        // 开启了兼容 将兼容配置选项放入最终配置中
         if (__COMPAT__) {
           // pass runtime compat config into the compiler
           finalCompilerOptions.compatConfig = Object.create(globalCompatConfig)
@@ -800,12 +815,14 @@ export function finishComponentSetup(
       }
     }
 
+    // 如果最后没有得到渲染函数 给一个默认函数 方便以后继承
     instance.render = (Component.render || NOOP) as InternalRenderFunction
 
     // for runtime-compiled render functions using `with` blocks, the render
     // proxy used needs a different `has` handler which is more performant and
     // also only allows a whitelist of globals to fallthrough.
-    // vue 实例会被代理 且 如果是被排除在外的数据无法通过代理
+    // vue 实例会被代理 且 如果是被排除在外的数据无法通过代理 每次从实例上获取东西都会拦截
+    // 保证数据不会返回null或者undefined的情况 会提前报错
     if (installWithProxy) {
       installWithProxy(instance)
     }
@@ -816,6 +833,7 @@ export function finishComponentSetup(
   if (__FEATURE_OPTIONS_API__ && !(__COMPAT__ && skipOptions)) {
     setCurrentInstance(instance)
     pauseTracking()
+    // 处理v2的选项 在这期间不会去收集依赖
     applyOptions(instance)
     resetTracking()
     unsetCurrentInstance()

@@ -401,6 +401,7 @@ function baseCreateRenderer(
     // 第一次进来 type 是根组建的配置对象 所以会执行 if(shapeFlag & ShapeFlags.COMPONENT) 中的逻辑 也就是执行 processComponent 函数
     // 在对比节点列表的情况下(vFor渲染出来的) 大部分情况下都是进入patchElement
     // 如果是teleport 会进入来一个teleport的配置对象
+    // 如果传递进来的是Suspense 就是Suspense的操作方法
     const { type, ref, shapeFlag } = n2
     switch (type) {
       case Text: /* 文本 */
@@ -1335,12 +1336,15 @@ function baseCreateRenderer(
 
     // setup() is async. This component relies on async logic to be resolved
     // before proceeding
-    // 异步setup
+    // 异步setup 此组件依赖于要在继续解析之前的异步逻辑(由setup返回的Promise)
     if (__FEATURE_SUSPENSE__ && instance.asyncDep) {
       parentSuspense && parentSuspense.registerDep(instance, setupRenderEffect)
 
       // Give it a placeholder if this is not hydration
       // TODO handle self-defined fallback
+      // 如果不是服务端渲染 请给它一个占位符
+      // 方便后面处理自定义的#fallback
+      // 也就是说如果异步没有回来之前一直会有一个
       if (!initialVNode.el) {
         const placeholder = (instance.subTree = createVNode(Comment))
         processCommentNode(null, placeholder, container!, anchor)
@@ -2366,6 +2370,7 @@ function baseCreateRenderer(
       unmountComponent(vnode.component!, parentSuspense, doRemove)
     } else {
       if (__FEATURE_SUSPENSE__ && shapeFlag & ShapeFlags.SUSPENSE) {
+        // 执行Suspense扩展过的remove函数
         vnode.suspense!.unmount(parentSuspense, doRemove)
         return
       }
@@ -2375,6 +2380,7 @@ function baseCreateRenderer(
       }
 
       if (shapeFlag & ShapeFlags.TELEPORT) {
+        // 执行Teleport扩展过的remove函数
         ;(vnode.type as typeof TeleportImpl).remove(
           vnode,
           parentComponent,
@@ -2386,10 +2392,12 @@ function baseCreateRenderer(
       } else if (
         dynamicChildren &&
         // #1153: fast path should not be taken for non-stable (v-for) fragments
+        // 对于不稳定（v-for）碎片，不应采用快速路径 防止无法触发组件的onUnmounted
         (type !== Fragment ||
           (patchFlag > 0 && patchFlag & PatchFlags.STABLE_FRAGMENT))
       ) {
         // fast path for block nodes: only need to unmount dynamic children.
+        // 块节点的快速路径：只需卸载动态子节点
         unmountChildren(
           dynamicChildren,
           parentComponent,

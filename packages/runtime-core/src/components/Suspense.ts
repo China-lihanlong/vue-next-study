@@ -32,6 +32,27 @@ export interface SuspenseProps {
   timeout?: string | number
 }
 
+/**
+ * Suspense的vnode
+ *  Suspense的vnode的Choldren的是两个渲染函数 一个渲染#default中的内容 一个渲染#fallback中的内容
+ *  vnode上会有两个属性 ssContent和ssFallback 分别对应其#default和#fallback的vnode
+ *  且Suspense会产生一个suspense对象 记录了一些操作函数、#fallback容器和#default容器、是否SSR等信息
+ *  在suspense对象初始化完成之后便会放在vnode上 或者是在更新时，再次挂在新的vnode上
+ * 
+ * #default会被设置为pendingBranch(即将挂载到页面上的) 
+ * #fallback会被设置为activeBranch(已经挂载到页面上的)
+ * Suspense 会先处理#default中的内容 并将ssContent放到pendingBranch上
+ * 然后再处理#fallback中的内容 将其挂载到vue树中 并且设置为activeBranch
+ * 
+ * Suspense 更新阶段 
+ * 
+ * Suspense有三个独有的周期函数 onResolve onFallback onPending
+ *  onResolve只有在Suspense执行resolve的最后才会触发
+ *  onPending 有两个触发 第一个在 初始化的时候，开始挂载#fallback的时候执行(前提是有等待返回的#default) 第二个是在patchSuspense的
+ * 更新阶段
+ * 
+ */
+
 // 判断是否为Suspense
 export const isSuspense = (type: any): boolean => type.__isSuspense
 
@@ -127,6 +148,7 @@ function mountSuspense(
     p: patch,
     o: { createElement }
   } = rendererInternals
+  // #default内容的容器
   const hiddenContainer = createElement('div')
   const suspense = (vnode.suspense = createSuspenseBoundary(
     vnode,
@@ -142,6 +164,7 @@ function mountSuspense(
   ))
 
   // start mounting the content subtree in an off-dom container
+  // 先开始处理#default中的内容 并将其后续放到异步队列中 后面开始处理#fallback
   patch(
     null,
     (suspense.pendingBranch = vnode.ssContent!),
@@ -153,6 +176,7 @@ function mountSuspense(
     slotScopeIds
   )
   // now check if we have encountered any async deps
+  // 如果没有遇到异步的操作 直接可以进行resolve
   if (suspense.deps > 0) {
     // has async
     // invoke @fallback event
@@ -170,6 +194,7 @@ function mountSuspense(
       isSVG,
       slotScopeIds
     )
+    // 挂载完毕之后 将其设置为activeBranch
     setActiveBranch(suspense, vnode.ssFallback!)
   } else {
     // Suspense has no async deps. Just resolve.
@@ -188,17 +213,26 @@ function patchSuspense(
   optimized: boolean,
   { p: patch, um: unmount, o: { createElement } }: RendererInternals
 ) {
+  // 获取原始的suspense对象 将其放在新的vnode身上 还有挂载的容器
   const suspense = (n2.suspense = n1.suspense)!
   suspense.vnode = n2
   n2.el = n1.el
+  // 新的 #default
   const newBranch = n2.ssContent!
+  // 新的 #fallback
   const newFallback = n2.ssFallback!
 
+  // activeBranch：当前已经挂载的, pendingBranch：还在等待结果返回的, isInFallback：显示的内容还是fallback?, isHydrating：SSR？
   const { activeBranch, pendingBranch, isInFallback, isHydrating } = suspense
   if (pendingBranch) {
+    // 在Suspense的异步任务没有返回结果之前就更新Suspense
+    // 更新的可能是pendingBranch 也可能是#fallback中的内容
+    // 先进行更新#default
     suspense.pendingBranch = newBranch
     if (isSameVNodeType(newBranch, pendingBranch)) {
       // same root type but content may have changed.
+      // 相同的根类型，但内容可能已更改。
+      // 但是由于render或effect尚未执行或设置 只需要更新props和slots
       patch(
         pendingBranch,
         newBranch,
@@ -210,6 +244,8 @@ function patchSuspense(
         slotScopeIds,
         optimized
       )
+      // 如果在更新完 没有异步的dep Suspense直接进入结束阶段
+      // 如果还是在#fallback阶段 开始更新#fallback的更新 并将新的#fallback设置activeBranch
       if (suspense.deps <= 0) {
         suspense.resolve()
       } else if (isInFallback) {
@@ -219,7 +255,7 @@ function patchSuspense(
           container,
           anchor,
           parentComponent,
-          null, // fallback tree will not have suspense context
+          null, // fallback tree will not have suspense context fallback里不会有Suspense内容
           isSVG,
           slotScopeIds,
           optimized
@@ -428,7 +464,7 @@ function createSuspenseBoundary(
     o: { parentNode, remove }
   } = rendererInternals
 
-  // 外界可以设置多长时间超时
+  // 外界可以设置多长时间超时 如果没有设置在后面默认是-1
   const timeout = toNumber(vnode.props && vnode.props.timeout)
   const suspense: SuspenseBoundary = {
     vnode,
@@ -464,7 +500,9 @@ function createSuspenseBoundary(
       }
       const {
         vnode,
+        // activeBranch是#fallback中的内容
         activeBranch,
+        // pendingBranch是#default中的内容
         pendingBranch,
         pendingId,
         effects,
@@ -473,8 +511,11 @@ function createSuspenseBoundary(
       } = suspense
 
       if (suspense.isHydrating) {
+        // 服务器渲染在前面已经处理过了，这里将其关闭
         suspense.isHydrating = false
       } else if (!resume) {
+        // 如果pendingBranch存在进入过渡 那么activeBranch就会有一个离开过渡
+        // 在renderer.ts 的move会被执行
         const delayEnter =
           activeBranch &&
           pendingBranch!.transition &&
@@ -487,32 +528,42 @@ function createSuspenseBoundary(
           }
         }
         // this is initial anchor on mount
+        // 这是初始化时的定位瞄
         let { anchor } = suspense
+        // 如果activeBranch存在，需要卸载#fallback 这玩意没用了 因为要开始挂载#default中的内容了
         // unmount current active tree
         if (activeBranch) {
           // if the fallback tree was mounted, it may have been moved
           // as part of a parent suspense. get the latest anchor for insertion
+          // 如果#fallback已经挂载 但是可能会作为parent Suspense的一部分移动，
+          // 所以这里再进行挂载#default进行重新确定插入的位置(确认之前插入的瞄点)
           anchor = next(activeBranch)
+          // 卸载完毕#fallback的过程中会执行#fallback身上的afterLeave方法 进行离开过渡
           unmount(activeBranch, parentComponent, suspense, true)
         }
         if (!delayEnter) {
+          // 没有进入过渡，直接进行挂载
           // move content from off-dom container to actual container
           move(pendingBranch!, container, anchor, MoveType.ENTER)
         }
       }
 
+      // 重新设置activeBranch 然后将其他属性恢复初始值
       setActiveBranch(suspense, pendingBranch!)
       suspense.pendingBranch = null
       suspense.isInFallback = false
 
       // flush buffered effects
       // check if there is a pending parent suspense
+      // Suspense 会有嵌套的情况 一直往外找
       let parent = suspense.parent
       let hasUnresolvedAncestor = false
       while (parent) {
         if (parent.pendingBranch) {
           // found a pending parent suspense, merge buffered post jobs
           // into that parent
+          // 找到一个挂起的父Suspense，将等待的异步任务合并到该父项中
+          // 如果没找到重新赋值parent 找parent的parent 直到找到最外层
           parent.effects.push(...effects)
           hasUnresolvedAncestor = true
           break
@@ -520,6 +571,7 @@ function createSuspenseBoundary(
         parent = parent.parent
       }
       // no pending parent suspense, flush all jobs
+      // 如果没有parent Suspense 开始执行所有的异步任务
       if (!hasUnresolvedAncestor) {
         queuePostFlushCb(effects)
       }
@@ -591,6 +643,9 @@ function createSuspenseBoundary(
     },
 
     registerDep(instance, setupRenderEffect) {
+      // 在执行当前组件时 如果setup内部存在异步操作 就会执行这个
+      // instance 是当前组件实例 setupRenderEffect是安装渲染依赖的函数
+      // 是否存在未完成的pendingBranch 有dep+1
       const isInPendingSuspense = !!suspense.pendingBranch
       if (isInPendingSuspense) {
         suspense.deps++
@@ -603,6 +658,9 @@ function createSuspenseBoundary(
         .then(asyncSetupResult => {
           // retry when the setup() promise resolves.
           // component may have been unmounted before resolve.
+          // 不知道返回的Promise什么时候返回结果 但是在返回的时候可能组件已经被卸载
+          // 如果已经被卸载或者是Suspense被卸载以及如果不是等待的异步和处理的异步不是同一个
+          /// 直接结束当前的Pormise解析
           if (
             instance.isUnmounted ||
             suspense.isUnmounted ||
@@ -611,18 +669,24 @@ function createSuspenseBoundary(
             return
           }
           // retry from this component
+          // 组件重试从这里开始
+          // 标记开始异步解析
           instance.asyncResolved = true
           const { vnode } = instance
           if (__DEV__) {
             pushWarningContext(vnode)
           }
+          // setup返回结果处理 和普通组件差不多 一样的处理v2的兼容
           handleSetupResult(instance, asyncSetupResult, false)
           if (hydratedEl) {
             // vnode may have been replaced if an update happened before the
             // async dep is resolved.
+            // 如果在解析异步dep之前发生更新，则vnode可能已被替换
             vnode.el = hydratedEl
           }
+          // 占位符
           const placeholder = !hydratedEl && instance.subTree.el
+          // 处理异步返回产生的依赖
           setupRenderEffect(
             instance,
             vnode,
@@ -637,13 +701,17 @@ function createSuspenseBoundary(
             isSVG,
             optimized
           )
+          // 移除占位符
           if (placeholder) {
             remove(placeholder)
           }
+          // 高阶组件 确认el
           updateHOCHostEl(instance, vnode.el)
           if (__DEV__) {
             popWarningContext()
           }
+          // Suspense的异步任务中嵌套了其他异步任务 到这里 每减少一个deps 代表一个异步任务结束
+          // 只有到了最后一个异步任务Suspense才会进入resolve
           // only decrease deps count if suspense is not already resolved
           if (isInPendingSuspense && --suspense.deps === 0) {
             suspense.resolve()
