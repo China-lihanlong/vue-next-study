@@ -47,9 +47,9 @@ export interface SuspenseProps {
  * Suspense 更新阶段 
  * 
  * Suspense有三个独有的周期函数 onResolve onFallback onPending
- *  onResolve只有在Suspense执行resolve的最后才会触发
- *  onPending 有两个触发 第一个在 初始化的时候，开始挂载#fallback的时候执行(前提是有等待返回的#default) 第二个是在patchSuspense的
- * 更新阶段
+ *  onResolve 在resolve执行完的最后执行
+ *  onPending 在加载pendingBranch之前会触发
+ *  onFallback 在加载#fallback树之前会执行一次
  * 
  */
 
@@ -176,7 +176,7 @@ function mountSuspense(
     slotScopeIds
   )
   // now check if we have encountered any async deps
-  // 如果没有遇到异步的操作 直接可以进行resolve
+  // 如果没有产生异步的dep 直接可以进行resolve
   if (suspense.deps > 0) {
     // has async
     // invoke @fallback event
@@ -222,7 +222,8 @@ function patchSuspense(
   // 新的 #fallback
   const newFallback = n2.ssFallback!
 
-  // activeBranch：当前已经挂载的, pendingBranch：还在等待结果返回的, isInFallback：显示的内容还是fallback?, isHydrating：SSR？
+  // activeBranch：当前已经挂载的, pendingBranch：还在等待结果返回的, 
+  // isInFallback：显示的内容还是fallback?, isHydrating：SSR是否完成？
   const { activeBranch, pendingBranch, isInFallback, isHydrating } = suspense
   if (pendingBranch) {
     // 在Suspense的异步任务没有返回结果之前就更新Suspense
@@ -231,7 +232,7 @@ function patchSuspense(
     suspense.pendingBranch = newBranch
     if (isSameVNodeType(newBranch, pendingBranch)) {
       // same root type but content may have changed.
-      // 相同的根类型，但内容可能已更改。
+      // 相同的根类型，但内容可能已更改。(也就是已经开始解析了)
       // 但是由于render或effect尚未执行或设置 只需要更新props和slots
       patch(
         pendingBranch,
@@ -264,26 +265,34 @@ function patchSuspense(
       }
     } else {
       // toggled before pending tree is resolved
+      // 在异步任务进入resolve阶段之前更新 替换整个pending tree
+      // 增量pendingid。这用于使异步回调无效并重置挂起状态
       suspense.pendingId++
       if (isHydrating) {
         // if toggled before hydration is finished, the current DOM tree is
         // no longer valid. set it as the active branch so it will be unmounted
         // when resolved
+        // 如果在服务端渲染完成之前更新 则说明当前DOM树不在有效 设置为activeBranch 方便以后resolve阶段卸载
         suspense.isHydrating = false
         suspense.activeBranch = pendingBranch
       } else {
+        // 不是SSR 直接将已经挂载的DOM树卸载
         unmount(pendingBranch, parentComponent, suspense)
       }
       // increment pending ID. this is used to invalidate async callbacks
       // reset suspense state
+      // 重置suspense状态
       suspense.deps = 0
       // discard effects from pending branch
+      // 放弃旧的的pendingBranch的一切effect
       suspense.effects.length = 0
       // discard previous container
+      // 放弃旧的容器
       suspense.hiddenContainer = createElement('div')
 
       if (isInFallback) {
         // already in fallback state
+        // 处于#fallback阶段 先对#default进行解析
         patch(
           null,
           newBranch,
@@ -295,6 +304,8 @@ function patchSuspense(
           slotScopeIds,
           optimized
         )
+        // 没有产生异步dep Suspense进入结束阶段
+        // 产生了异步dep 为了防止没有东西回来 开始解析#fallback的内容
         if (suspense.deps <= 0) {
           suspense.resolve()
         } else {
@@ -313,6 +324,7 @@ function patchSuspense(
         }
       } else if (activeBranch && isSameVNodeType(newBranch, activeBranch)) {
         // toggled "back" to current active branch
+        // pendingBranch已经挂载完毕了 变成了activeBranch 进行更新
         patch(
           activeBranch,
           newBranch,
@@ -325,9 +337,11 @@ function patchSuspense(
           optimized
         )
         // force resolve
+        // 已经挂载完毕了，已经存在了进入过渡，不需要再次解析进入过渡
         suspense.resolve(true)
       } else {
         // switched to a 3rd branch
+        // 在上一个第二分支进入resolve之前切换到第三分支 则重新开始解析#default
         patch(
           null,
           newBranch,
@@ -339,14 +353,18 @@ function patchSuspense(
           slotScopeIds,
           optimized
         )
+        // 没有产生异步的dep Suspense进入结束状态
         if (suspense.deps <= 0) {
           suspense.resolve()
         }
       }
     }
   } else {
+    // 在#default执行完resolve之后 
     if (activeBranch && isSameVNodeType(newBranch, activeBranch)) {
       // root did not change, just normal patch
+      // 更新#default 再把新的branch设置为activeBranch
+      // 没有将整个#default直接更新 知识更新其内部 也就是简单的 patch 更新
       patch(
         activeBranch,
         newBranch,
@@ -360,12 +378,17 @@ function patchSuspense(
       )
       setActiveBranch(suspense, newBranch)
     } else {
+      // 直接将整个#default换成新的#default 需要从头开始解析新的#default
+      // 且如果符合条件 也是会重新去加载#fallback里的内容
       // root node toggled
       // invoke @pending event
+      // 触发钩子函数函数 onPenging
       triggerEvent(n2, 'onPending')
       // mount pending branch in off-dom container
+      // 重新设定pendingBranch
       suspense.pendingBranch = newBranch
       suspense.pendingId++
+      // 开始解析新的#default
       patch(
         null,
         newBranch,
@@ -377,10 +400,14 @@ function patchSuspense(
         slotScopeIds,
         optimized
       )
+      // 在解析的过程中 如果没有产生异步的dep 那么当前Suspense直接进入结束阶段
       if (suspense.deps <= 0) {
         // incoming branch has no async deps, resolve now.
         suspense.resolve()
       } else {
+        // 符合条件就会加载#fallback
+        // 最长加载时间(timeout)大于0 就会在大于timeout的时候去加载#fallback
+        // 前提是在等待加载的过程中pendingBranch不会变化
         const { timeout, pendingId } = suspense
         if (timeout > 0) {
           setTimeout(() => {
@@ -389,6 +416,7 @@ function patchSuspense(
             }
           }, timeout)
         } else if (timeout === 0) {
+          // 最长加载时间(timeout)为0 直接开始挂载#fallback
           suspense.fallback(newFallback)
         }
       }
@@ -577,11 +605,14 @@ function createSuspenseBoundary(
       }
       suspense.effects = []
 
+      // 钩子函数 onResolve
       // invoke @resolve event
       triggerEvent(vnode, 'onResolve')
     },
 
+    // 重新加载#fallback
     fallback(fallbackVNode) {
+      // 如果suspense没有挂起pendingBranch 说明没有新的异步任务需要加载 所以不需要重新加载#fallback
       if (!suspense.pendingBranch) {
         return
       }
@@ -590,10 +621,13 @@ function createSuspenseBoundary(
         suspense
 
       // invoke @fallback event
+      // suspense钩子函数 onFallback
       triggerEvent(vnode, 'onFallback')
 
+      // 外界可能更新 需要重新定位瞄点 mountFallback是挂载的主要函数
       const anchor = next(activeBranch!)
       const mountFallback = () => {
+        // 只有在isInFallback=true也就是进入的InFallback阶段才会挂载#fallback
         if (!suspense.isInFallback) {
           return
         }
@@ -612,6 +646,7 @@ function createSuspenseBoundary(
         setActiveBranch(suspense, fallbackVNode)
       }
 
+      // 过渡：离开过渡 在进行unmount的时候就会执行 在删除当前activeBranch之后会执行mountFallback
       const delayEnter =
         fallbackVNode.transition && fallbackVNode.transition.mode === 'out-in'
       if (delayEnter) {
@@ -620,6 +655,7 @@ function createSuspenseBoundary(
       suspense.isInFallback = true
 
       // unmount current active branch
+      // 删除当前activeBranch(已经挂载到页面上的)
       unmount(
         activeBranch!,
         parentComponent,
@@ -627,21 +663,26 @@ function createSuspenseBoundary(
         true // shouldRemove
       )
 
+      // 如果没有过渡 在unmount之中不会去执行过渡 也就不会执行mountFallback 所以这里需要去调用去挂载#fallback
       if (!delayEnter) {
         mountFallback()
       }
     },
 
+    // 将suspense的activeBranch移动到指定的container中
+    // 前提是activeBranch存在，且到最后会更新suspense身上的container
     move(container, anchor, type) {
       suspense.activeBranch &&
         move(suspense.activeBranch, container, anchor, type)
       suspense.container = container
     },
 
+    // 确认activeBranch的兄弟 确认瞄点
     next() {
       return suspense.activeBranch && next(suspense.activeBranch)
     },
 
+    // 注册suspense产生的异步dep
     registerDep(instance, setupRenderEffect) {
       // 在执行当前组件时 如果setup内部存在异步操作 就会执行这个
       // instance 是当前组件实例 setupRenderEffect是安装渲染依赖的函数
@@ -719,6 +760,7 @@ function createSuspenseBoundary(
         })
     },
 
+    // 卸载suspense 需要卸载两个东西 activeBranch 和 pendingBranch
     unmount(parentSuspense, doRemove) {
       suspense.isUnmounted = true
       if (suspense.activeBranch) {

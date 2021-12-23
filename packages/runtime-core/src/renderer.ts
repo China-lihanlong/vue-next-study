@@ -1336,7 +1336,7 @@ function baseCreateRenderer(
 
     // setup() is async. This component relies on async logic to be resolved
     // before proceeding
-    // 异步setup 此组件依赖于要在继续解析之前的异步逻辑(由setup返回的Promise)
+    // 异步setup 此组件要在结束之前继续之前的异步逻辑(由setup返回的Promise)
     if (__FEATURE_SUSPENSE__ && instance.asyncDep) {
       parentSuspense && parentSuspense.registerDep(instance, setupRenderEffect)
 
@@ -2259,16 +2259,19 @@ function baseCreateRenderer(
       return
     }
 
+    // 移动Suspense
     if (__FEATURE_SUSPENSE__ && shapeFlag & ShapeFlags.SUSPENSE) {
       vnode.suspense!.move(container, anchor, moveType)
       return
     }
 
+    // 移动Teleport
     if (shapeFlag & ShapeFlags.TELEPORT) {
       ;(type as typeof TeleportImpl).move(vnode, container, anchor, internals)
       return
     }
 
+    // 移动Fragment
     if (type === Fragment) {
       hostInsert(el!, container, anchor)
       for (let i = 0; i < (children as VNode[]).length; i++) {
@@ -2278,6 +2281,7 @@ function baseCreateRenderer(
       return
     }
 
+    // 移动静态节点
     if (type === Static) {
       moveStaticNode(vnode, container, anchor)
       return

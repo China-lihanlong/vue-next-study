@@ -97,7 +97,7 @@ export const TeleportImpl = {
     let { shapeFlag, children, dynamicChildren } = n2
 
     // #3302
-    // HMR updated, force full diff
+    // HMR updated, force full diff 热更新 回退非优化模式 防止teleport重复挂载
     if (__DEV__ && isHmrUpdating) {
       optimized = false
       dynamicChildren = null
@@ -129,7 +129,7 @@ export const TeleportImpl = {
         warn('Invalid Teleport target on mount:', target, `(${typeof target})`)
       }
 
-      // 开始挂载teleport中的内容
+      // 挂载teleport中的内容的函数
       const mount = (container: RendererElement, anchor: RendererNode) => {
         // Teleport *always* has Array children. This is enforced in both the
         // compiler and vnode children normalization.
@@ -161,10 +161,14 @@ export const TeleportImpl = {
       // 更新内容
       n2.el = n1.el
       // 因为重新生成了VNode 全部的数据需要重新确认一次
+      // 结束定位符
       const mainAnchor = (n2.anchor = n1.anchor)!
       const target = (n2.target = n1.target)!
+      // 渲染目标容器中的定位符
       const targetAnchor = (n2.targetAnchor = n1.targetAnchor)!
+      // 旧的传送功能状态
       const wasDisabled = isTeleportDisabled(n1.props)
+      // 根据wasDisabled拿到渲染之前的目标容器和渲染定位符
       const currentContainer = wasDisabled ? container : target
       const currentAnchor = wasDisabled ? mainAnchor : targetAnchor
       isSVG = isSVG || isTargetSVG(target)
@@ -205,7 +209,7 @@ export const TeleportImpl = {
 
       // 根据disabled和wasDisabled进行确认渲染方式 一共有三种情况
       if (disabled) {
-        // 1. 从禁用切换到启用 渲染teleport主体内容到指定的teleport容器中
+        // 1. 从启用切换到禁用 渲染teleport主体内容到指定的teleport容器中
         if (!wasDisabled) {
           // enabled -> disabled
           // move into main container
@@ -243,7 +247,7 @@ export const TeleportImpl = {
         } else if (wasDisabled) {
           // disabled -> enabled
           // move into teleport target
-          // 3. 从启用切换到禁用 渲染teleport主体内容到初始化的teleport的容器中
+          // 3. 从禁用切换到启用 渲染teleport主体内容到初始化的teleport的容器中
           moveTeleport(
             n2,
             target,
@@ -316,17 +320,20 @@ function moveTeleport(
     insert(vnode.targetAnchor!, container, parentAnchor)
   }
   const { el, anchor, shapeFlag, children, props } = vnode
+  // 这里的el是:<!--teleport start-->
+  // 这里的anchor是：<!--teleport end-->
   const isReorder = moveType === TeleportMoveTypes.REORDER
   // move main view anchor if this is a re-order.
-  // 渲染teleport的目标容器发生改变 需要重新移动
+  // 可能当前<teleport>是某个节点的子节点 当顺序发生变化，请移动teleport主视图定位标记
   if (isReorder) {
     insert(el!, container, parentAnchor)
   }
   // if this is a re-order and teleport is enabled (content is in target)
   // do not move children. So the opposite is: only move children if this
   // is not a reorder, or the teleport is disabled
-  // 如果只是单纯的是teleport内部元素发生变化，只需要去移动内部的子节点，(如果这不是重新排序，或者teleport的功能被禁用)
+  // 如果只是单纯的是teleport内部元素发生变化，只需要去移动内部的子节点，(如果这不是重新排序)
   // 但是如果是渲染teleport的目标容器发生改变 只会重新移动 不会移动内部字节点
+  // 或许teleport的功能被禁用了，如果内部存在子节点也需要去移动
   if (!isReorder || isTeleportDisabled(props)) {
     // Teleport has either Array children or no children.
     if (shapeFlag & ShapeFlags.ARRAY_CHILDREN) {
@@ -341,7 +348,7 @@ function moveTeleport(
     }
   }
   // move main view anchor if this is a re-order.
-  // 渲染teleport的目标容器发生改变 不仅仅需要移动主体，还需要移动瞄点
+  // 可能当前<teleport>是某个节点的子节点 当顺序发生变化，请移动teleport主视图定位标记
   if (isReorder) {
     insert(anchor!, container, parentAnchor)
   }

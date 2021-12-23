@@ -1,0 +1,104 @@
+<div id="app"></div>
+<div id="someId"></div>
+<div class="someClass"></div>
+
+<script src="../dist/vue.global.js"></script>
+<script>
+  const { createApp, ref } = Vue
+
+  const ModalButton = {
+    template: `
+    <button @click="changeTargetContainer">changeTargetContainer</button><br />
+    <button @click="changeDisabled">changeDisabled</button><br />
+    <button @click="open">open full screen modal</button><br />
+    <teleport :to="targetContainer" :disabled="disabled">
+      <div v-if="modalOpen" class="modal">
+        <div>I'm a teleport modal!!!(My Parent is body)</div>
+        <button @click="clone">clone full screen modal</button>
+      </div>
+    </teleport>
+    <teleport :to="targetContainer" :disabled="disabled">
+      <div v-if="modalOpen" class="modal">
+        <div>I'm a teleport modal!!!(My Parent is body)</div>
+        <button @click="clone">clone full screen modal</button>
+      </div>
+    </teleport>
+    <teleport :to="targetContainer" :disabled="disabled">
+      <div v-if="modalOpen" class="modal">
+        <div>I'm a teleport modal!!!(My Parent is body)</div>
+        <button @click="clone">clone full screen modal</button>
+      </div>
+    </teleport>
+    <teleport :to="targetContainer" :disabled="disabled">
+      <div v-if="modalOpen" class="modal">
+        <div>I'm a teleport modal!!!(My Parent is body)</div>
+        <button @click="clone">clone full screen modal</button>
+      </div>
+    </teleport>
+    <teleport :to="targetContainer" :disabled="disabled">
+      <div v-if="modalOpen" class="modal">
+        <div>I'm a teleport modal!!!(My Parent is body)</div>
+        <button @click="clone">clone full screen modal</button>
+      </div>
+    </teleport>
+    <teleport :to="targetContainer" :disabled="disabled">
+      <div v-if="modalOpen" class="modal">
+        <div>I'm a teleport modal!!!(My Parent is body)</div>
+        <button @click="clone">clone full screen modal</button>
+      </div>
+    </teleport>
+    <teleport :to="targetContainer" :disabled="disabled">
+      <div v-if="modalOpen" class="modal">
+        <div>I'm a teleport modal!!!(My Parent is body)</div>
+        <button @click="clone">clone full screen modal</button>
+      </div>
+    </teleport>
+    `,
+
+    setup() {
+      const modalOpen = ref(false);
+      const targetContainer = ref('.someClass')
+      const disabled = ref(true)
+      // 关闭函数
+      const clone = () => modalOpen.value = false
+      // 开启函数
+      const open = () => modalOpen.value = true
+      function changeTargetContainer() {
+        targetContainer.value === '.someClass'
+          ? targetContainer.value = '#someId'
+          : targetContainer.value = '.someClass'
+      }
+
+      function changeDisabled() {
+        disabled.value = !disabled.value
+      }
+      return {
+        modalOpen,
+        clone,
+        open,
+        targetContainer,
+        changeTargetContainer,
+        disabled,
+        changeDisabled
+      }
+    }
+  }
+
+
+  const App = {
+    template: `
+    <div>Tooltips Vue 3 Teleport</div>
+    <ModalButton />
+    `,
+
+    setup() {
+
+    },
+
+    components: {
+      ModalButton: ModalButton
+    }
+  }
+
+  const app = createApp(App).mount('#app')
+</script>

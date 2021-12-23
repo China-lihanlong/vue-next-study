@@ -1,7 +1,7 @@
 <div id="app"></div>
 <script src="../dist/vue.global.js"></script>
 <script>
-  const { createApp, ref, defineAsyncComponent } = Vue
+  const { createApp, ref, defineAsyncComponent, onErrorCaptured } = Vue
 
   const loading = {
     template: `<div>Loading....</div>`
@@ -18,7 +18,8 @@
       const data = ref(null)
       const promise = new Promise((resolve, reject) => {
         setTimeout(() => {
-          resolve('success')
+          // resolve('success')
+          reject('data info loading error...')
         }, 5000)
       })
       data.value = await promise
@@ -74,9 +75,10 @@
 
     template: `
       <div>
-        <Suspense>
+        <div v-if="error">{{error}}</div>
+        <Suspense v-else>
           <template #default>
-            <GrandSon />
+            <Users/>  
           </template>
           <template #fallback>
             <div>{{type}} Info Loading...</div>
@@ -90,10 +92,16 @@
       function trigger() {
         type.value === 'users' ? type.value = 'grandSon' : type.value = 'users'
       }
+      const error = ref(null)
+      onErrorCaptured(e => {
+        error.value = e
+        return false
+      })
 
       return {
         trigger,
-        type
+        type,
+        error
       }
     },
 
