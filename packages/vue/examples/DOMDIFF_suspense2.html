@@ -1,0 +1,97 @@
+<div id="app"></div>
+<script src="../dist/vue.global.js"></script>
+<script>
+  const { createApp, ref, defineAsyncComponent } = Vue
+
+  const Users = {
+    template: `
+      <ul>
+        <li v-for="user in users" :key="user.id">
+          id: {{user.id}}, first_name: {{user.first_name}}, email: {{user.email}}
+        </li>  
+      </ul>
+    `,
+
+    async setup() {
+      const users = ref(null)
+      const usersResponse = await fetch('https://reqres.in/api/users?delay=2')
+      const result = await usersResponse.json()
+      users.value = result.data
+
+      return {
+        users
+      }
+    }
+  }
+
+  const UsersFallback = {
+    template: `
+      <ul>
+        <li v-for="user in users" :key="user.id">
+          id: {{user.id}}, last_name: {{user.last_name}}, email: {{user.email}}
+        </li>  
+      </ul>
+    `,
+
+    async setup() {
+      const users = ref(null)
+      const usersResponse = await fetch('https://reqres.in/api/users?delay=2')
+      const result = await usersResponse.json()
+      users.value = result.data
+
+      return {
+        users
+      }
+    }
+  }
+
+  const App = {
+    template: `
+      <div>
+        <Suspense :timeout="0">
+          <template #default>
+            <Users v-if="type==='users'" />
+            <UsersFallback v-else />
+          </template>  
+          <template #fallback>
+            <div>{{type}} Info loading...</div>
+          </template>  
+        </Suspense>
+        <button @click="changeType">changeType</button>
+      </div>
+    `,
+
+    setup() {
+      const type = ref('users')
+      function changeType() {
+        type.value === 'users' ? type.value = 'userFallback' : type.value = 'users'
+        console.log(type.value)
+      }
+
+      return {
+        type,
+        changeType
+      }
+    },
+
+    components: {
+      Users: defineAsyncComponent({
+        loader: () => {
+          return new Promise((resolve, reject) => {
+            return resolve(Users)
+          })
+        }
+      }),
+
+      UsersFallback: defineAsyncComponent({
+        loader: () => {
+          return new Promise((resolve, reject) => {
+            return resolve(UsersFallback)
+          })
+        }
+      })
+    }
+  }
+
+  const app = createApp(App).mount('#app')
+</script>
