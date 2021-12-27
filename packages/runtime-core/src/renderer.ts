@@ -708,7 +708,7 @@ function baseCreateRenderer(
         )
       }
 
-      // 子元素生命周期created方法
+      // 自定义指令created生命周期
       if (dirs) {
         invokeDirectiveHook(vnode, null, parentComponent, 'created')
       }
@@ -759,6 +759,7 @@ function baseCreateRenderer(
         enumerable: false
       })
     }
+    // 自定义指令 beforeMount生命周期函数
     if (dirs) {
       invokeDirectiveHook(vnode, null, parentComponent, 'beforeMount')
     }
@@ -781,6 +782,7 @@ function baseCreateRenderer(
       queuePostRenderEffect(() => {
         vnodeHook && invokeVNodeHook(vnodeHook, parentComponent, vnode)
         needCallTransitionHooks && transition!.enter(el)
+        // 自定义指令的 mounted函数
         dirs && invokeDirectiveHook(vnode, null, parentComponent, 'mounted')
       }, parentSuspense)
     }
@@ -881,7 +883,7 @@ function baseCreateRenderer(
     if ((vnodeHook = newProps.onVnodeBeforeUpdate)) {
       invokeVNodeHook(vnodeHook, parentComponent, n2, n1)
     }
-    // 自己本身上的beforeUpdate生命周期函数
+    // 自定义指令的beforeUpdate生命周期函数
     if (dirs) {
       invokeDirectiveHook(n2, n1, parentComponent, 'beforeUpdate')
     }
@@ -1015,6 +1017,7 @@ function baseCreateRenderer(
     if ((vnodeHook = newProps.onVnodeUpdated) || dirs) {
       queuePostRenderEffect(() => {
         vnodeHook && invokeVNodeHook(vnodeHook, parentComponent, n2, n1)
+        // 自定义指令 updated生命周期函数
         dirs && invokeDirectiveHook(n2, n1, parentComponent, 'updated')
       }, parentSuspense)
     }
@@ -2313,6 +2316,7 @@ function baseCreateRenderer(
             afterLeave && afterLeave()
           })
         }
+        // transition in-out模式
         if (delayLeave) {
           delayLeave(el!, remove, performLeave)
         } else {
@@ -2379,6 +2383,7 @@ function baseCreateRenderer(
         return
       }
 
+      // 自定义指令的 beforeUnmount 生命周期函数
       if (shouldInvokeDirs) {
         invokeDirectiveHook(vnode, null, parentComponent, 'beforeUnmount')
       }
@@ -2423,7 +2428,7 @@ function baseCreateRenderer(
       }
     }
 
-    // 执行卸载vnode时的生命周期函数
+    // 执行卸载vnode时的生命周期函数 还有自定义指令的卸载
     if (
       (shouldInvokeVnodeHook &&
         (vnodeHook = props && props.onVnodeUnmounted)) ||
@@ -2437,8 +2442,10 @@ function baseCreateRenderer(
     }
   }
 
+  // 卸载函数 根据节点类型处理
   const remove: RemoveFn = vnode => {
     const { type, el, anchor, transition } = vnode
+    // anchor 是 el的结束位置
     if (type === Fragment) {
       removeFragment(el!, anchor!)
       return
@@ -2449,6 +2456,7 @@ function baseCreateRenderer(
       return
     }
 
+    // 执行删除元素 执行当前元素的afterLeave(元素被删除之后执行)如果有
     const performRemove = () => {
       hostRemove(el!)
       if (transition && !transition.persisted && transition.afterLeave) {
@@ -2456,6 +2464,9 @@ function baseCreateRenderer(
       }
     }
 
+    // 删除元素 如果元素的存在transition
+    // 存在delayLeave in-out模式 等待新元素进入完毕 当前元素才会离开(执行leave)
+    // 没有执行performRemove
     if (
       vnode.shapeFlag & ShapeFlags.ELEMENT &&
       transition &&
@@ -2476,12 +2487,15 @@ function baseCreateRenderer(
   const removeFragment = (cur: RendererNode, end: RendererNode) => {
     // For fragments, directly remove all contained DOM nodes.
     // (fragment child nodes cannot have transition)
+    // fragments 的子节点不能带有transition
     let next
+    // 如果是 Fragments 循环删除删除所有的子节点，
     while (cur !== end) {
       next = hostNextSibling(cur)!
       hostRemove(cur)
       cur = next
     }
+    // 最后将end删除
     hostRemove(end)
   }
 

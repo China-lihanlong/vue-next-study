@@ -1,0 +1,51 @@
+<div id="app"></div>
+<script src="../dist/vue.global.js"></script>
+<script>
+  const { createApp, ref, reactive } = Vue
+
+  const Children = {
+    template: `
+      <li>1</li>
+      <li>2</li>
+      <li>3</li>
+      <li>4</li>
+      <li>5</li>
+    `
+  }
+
+  const App = {
+    template: `
+      <ul v-if="data.length!==0">
+        <!--<li v-for="item in data" :key="item.id">
+          id: {{item.id}} name: {{item.name}}  
+        </li>-->
+      </ul>
+      <Children v-if="data.length!==0" />
+      <button @click="clearData">clearData</button>
+    `,
+    setup() {
+      let data = ref([
+        { id: 1, name: 'AAA' },
+        { id: 2, name: 'AAA' },
+        { id: 3, name: 'AAA' },
+        { id: 4, name: 'AAA' },
+        { id: 5, name: 'AAA' },
+      ])
+
+      function clearData() {
+        data.value = []
+      }
+
+      return {
+        data,
+        clearData
+      }
+    },
+
+    components: {
+      Children: Children
+    }
+  }
+
+  const app = createApp(App).mount('#app')
+</script>
