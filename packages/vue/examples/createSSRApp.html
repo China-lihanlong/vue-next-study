@@ -1,0 +1,26 @@
+<div id="app"><div>333</div></div>
+<script src="../dist/vue.global.js"></script>
+<script src="https://unpkg.com/axios"></script>
+<script>
+  const { createSSRApp, ref, h } = Vue
+  /* const App = {
+    setup() {
+      const counter = ref(0)
+      function addCounter() {
+        counter.value++
+      }
+
+      return () => {
+        return h('div', 333)
+      }
+    }
+  } */
+  // const app = createSSRApp(App)
+  // app.mount('#app')
+
+  async function getHTML() {
+    const html = await axios.get('http://localhost:8080')
+    console.log(html)
+  }
+  getHTML()
+</script>

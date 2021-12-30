@@ -39,7 +39,7 @@ let renderer: Renderer<Element | ShadowRoot> | HydrationRenderer
 
 let enabledHydration = false
 
-// ensureRenderer这个方法得到就是渲染器
+// ensureRenderer这个方法得到就是客户端渲染器
 function ensureRenderer() {
   return (
     renderer ||
@@ -47,6 +47,7 @@ function ensureRenderer() {
   )
 }
 
+// ensureRenderer这个方法得到就是服务端渲染器
 function ensureHydrationRenderer() {
   renderer = enabledHydration
     ? renderer
@@ -64,7 +65,10 @@ export const hydrate = ((...args) => {
   ensureHydrationRenderer().hydrate(...args)
 }) as RootHydrateFunction
 
+// 返回一个提供应用上下文的应用实例
 export const createApp = ((...args) => {
+  // 这里调用的是renderer.ts中baseCreateRenderer返回的渲染器中的createApp，由createAppAPI创建的
+  // 在里面的mount、unmount中会调用传递render方法和hydrate方法
   const app = ensureRenderer().createApp(...args)
 
   if (__DEV__) {
@@ -116,6 +120,7 @@ export const createApp = ((...args) => {
   return app
 }) as CreateAppFunction<Element>
 
+// 创建一个服务端渲染应用
 export const createSSRApp = ((...args) => {
   const app = ensureHydrationRenderer().createApp(...args)
 

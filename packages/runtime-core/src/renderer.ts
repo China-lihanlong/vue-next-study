@@ -318,6 +318,25 @@ export function createHydrationRenderer(
   return baseCreateRenderer(options, createHydrationFunctions)
 }
 
+/**
+ * createRenderer何createHydrationRenderer是两个创建renderer(渲染器)
+ * 一个是Client Side Render 一个是Server Side Render
+ * 
+ * createRenderer 函数接受两个通用参数：HostNode 和 HostElement，
+ * 分别对应宿主环境中的 Node 和 Element 类型。 
+ * 例如，对于 runtime-dom，HostNode 将是 DOM `Node` 接口，HostElement 将是 DOM `Element` 接口。
+ * 
+ * 用于创建启用服务端的渲染器的单独 API。 Hydration 逻辑仅在调用此函数时使用，使其可摇树
+ * 
+ * 两个方法最终调用的是baseCreateRenderer 
+ * baseCreateRenderer内部创建了很多方法 比较常见的有：patch render等 在vDom的挂载和更新经常使用的就是这些方法
+ * baseCreateRenderer最后返回的是一个渲染器renderer 渲染器的结构如下：
+ * {render,
+ *  hydrate,
+ *  createApp: createAppAPI(render, hydrate)
+ * }
+ */
+
 // overload 1: no hydration
 function baseCreateRenderer<
   HostNode = RendererNode,
@@ -346,7 +365,7 @@ function baseCreateRenderer(
     setDevtoolsHook(target.__VUE_DEVTOOLS_GLOBAL_HOOK__, target)
   }
 
-  // 拿到平台的特有的操作方法
+  // 宿主环境中 DOM Node 和 DOM Element 接口
   const {
     insert: hostInsert,
     remove: hostRemove,
@@ -410,7 +429,7 @@ function baseCreateRenderer(
       case Comment: /* 注释 */
         processCommentNode(n1, n2, container, anchor)
         break
-      case Static: /* 静态节点 */
+      case Static: /* 静态节点：连续20个节点，且没任何动态的内容 */
         if (n1 == null) {
           mountStaticNode(n2, container, anchor, isSVG)
         } else if (__DEV__) {
