@@ -10,7 +10,7 @@ const nativeOnRE = /^on[a-z]/
 
 type DOMRendererOptions = RendererOptions<Node, Element>
 
-// 更新元素上的参数 class style
+// 更新元素上的动态特性
 export const patchProp: DOMRendererOptions['patchProp'] = (
   el,
   key,
@@ -23,12 +23,19 @@ export const patchProp: DOMRendererOptions['patchProp'] = (
   unmountChildren
 ) => {
   if (key === 'class') {
+    // 更新ClassName
     patchClass(el, nextValue, isSVG)
   } else if (key === 'style') {
+    // 更新Style
     patchStyle(el, prevValue, nextValue)
   } else if (isOn(key)) {
     // ignore v-model listeners
-    // 自定义 v-model 监听
+    // 监听组件上v-model派发出的update:modelValue事件
+    // 在组件上使用 v-model 默认情况下,
+    // 会使用v-model使用modelValue的值作为prop和update:modelValue作为事件
+    // 可以通过向v-model传递值修改这些名称
+    // <my-component v-model:title="bookTitle"></my-component>
+    // 那么子组件则需要一个 `title` prop 并派发出一个update:title事件来进行同步
     if (!isModelListener(key)) {
       patchEvent(el, key, prevValue, nextValue, parentComponent)
     }
@@ -39,7 +46,7 @@ export const patchProp: DOMRendererOptions['patchProp'] = (
       ? ((key = key.slice(1)), false)
       : shouldSetAsProp(el, key, nextValue, isSVG)
   ) {
-    // 提高设置svg的属性以及一些特殊属性设置的速度
+    // 校验一些特殊key 例如 SVG的attr 或者是一些 custom attr
     patchDOMProp(
       el,
       key,
@@ -50,7 +57,8 @@ export const patchProp: DOMRendererOptions['patchProp'] = (
       unmountChildren
     )
   } else {
-    // input 元素的值是false或者是true
+    // input 元素的v-model值是false或者是true的特殊情况需要存储为DOM的值
+    // 不是字符串的值会被字符串化
     // special case for <input v-model type="checkbox"> with
     // :true-value & :false-value
     // store value as dom properties since non-string values will be
@@ -60,11 +68,12 @@ export const patchProp: DOMRendererOptions['patchProp'] = (
     } else if (key === 'false-value') {
       ;(el as any)._falseValue = nextValue
     }
+    // 更新元素上的 attribute
     patchAttr(el, key, nextValue, isSVG, parentComponent)
   }
 }
 
-// 兼容一些原生特性 将其作为属性设置
+// 确认一些key是否可以作为prop 因为有一些key始终不能为prop 只能设置为attr
 function shouldSetAsProp(
   el: Element,
   key: string,
@@ -72,12 +81,14 @@ function shouldSetAsProp(
   isSVG: boolean
 ) {
   if (isSVG) {
+    // SVG的大多数key必须设置为attr才会正常工作 innerHTML 和 textContent除外
     // most keys must be set as attribute on svg elements to work
     // ...except innerHTML & textContent
     if (key === 'innerHTML' || key === 'textContent') {
       return true
     }
     // or native onclick with function values
+    // 或者是onclick之类设置function值
     if (key in el && nativeOnRE.test(key) && isFunction(value)) {
       return true
     }
@@ -90,27 +101,34 @@ function shouldSetAsProp(
   // `true`, so we need to always treat them as attributes.
   // Note that `contentEditable` doesn't have this problem: its DOM
   // property is also enumerated string values.
+  // spellcheck 和 draggable 是计算属性 将他们设置为字符串 "false" 需要将其强制设置为`true`
+  // 所以我们需要将其始终设置为attr
+  // 注意，`contentEditable`没有这个问题(它是枚举属性)：它的DOM属性也是枚举字符串值。
   if (key === 'spellcheck' || key === 'draggable') {
     return false
   }
 
   // #1787, #2840 form property on form elements is readonly and must be set as
   // attribute.
+  // form 元素的 form 应该是只读且必须设置为attr
   if (key === 'form') {
     return false
   }
 
   // #1526 <input list> must be set as attribute
+  // input 的list必须设置为attr
   if (key === 'list' && el.tagName === 'INPUT') {
     return false
   }
 
   // #2766 <textarea type> must be set as attribute
+  // textarea元素的type必须设置为attr
   if (key === 'type' && el.tagName === 'TEXTAREA') {
     return false
   }
 
   // native onclick with string value, must be set as attribute
+  // 数据原生的key必须设置为attr
   if (nativeOnRE.test(key) && isString(value)) {
     return false
   }

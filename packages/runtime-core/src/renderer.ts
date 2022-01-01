@@ -369,7 +369,7 @@ function baseCreateRenderer(
   const {
     insert: hostInsert,
     remove: hostRemove,
-    patchProp: hostPatchProp,
+    patchProp: hostPatchProp, // patchProp.ts 中的patchProp方法 用于更新节点上的 attribute 和 prop
     createElement: hostCreateElement,
     createText: hostCreateText,
     createComment: hostCreateComment,
@@ -878,7 +878,7 @@ function baseCreateRenderer(
     }
   }
 
-  // 对比元素
+  // 对比元素 更新元素的Element特性及其动态子节点
   const patchElement = (
     n1: VNode,
     n2: VNode,
@@ -916,6 +916,7 @@ function baseCreateRenderer(
 
     // 子元素是SVG吗
     const areChildrenSVG = isSVG && n2.type !== 'foreignObject'
+    // 更新动态子节点 如果回退到非优化模式则是全量更新 遍历每一个子节点
     if (dynamicChildren) {
       // 一个元素被称为一个块
       patchBlockChildren(
@@ -946,6 +947,7 @@ function baseCreateRenderer(
       )
     }
 
+    // 更新元素本身的动态特性
     if (patchFlag > 0) {
       // patchFlag 存在意味着是渲染代码是由编译器生成的
       // the presence of a patchFlag means this element's render code was
@@ -954,7 +956,7 @@ function baseCreateRenderer(
       // (i.e. at the exact same position in the source template)
       if (patchFlag & PatchFlags.FULL_PROPS) {
         // element props contain dynamic keys, full diff needed
-        // 比对动态的特性
+        // 元素上存在动态的attrs 需要去全量更新
         patchProps(
           el,
           n2,
@@ -965,7 +967,7 @@ function baseCreateRenderer(
           isSVG
         )
       } else {
-        // 对比 class
+        // 元素上存在动态的class 匹配更新(新旧class转换成字符串对比)
         // this flag is matched when the element has dynamic class bindings.
         if (patchFlag & PatchFlags.CLASS) {
           if (oldProps.class !== newProps.class) {
@@ -1093,6 +1095,7 @@ function baseCreateRenderer(
     }
   }
 
+  // 更新 prop
   const patchProps = (
     el: RendererElement,
     vnode: VNode,
