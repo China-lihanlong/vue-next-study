@@ -48,7 +48,7 @@ export const enum PatchFlags {
    * array that contains the keys of the props that may change so the runtime
    * can diff them faster (without having to worry about removed props)
    */
-  // 不是CLASS或者STYLE的元素特性 
+  // 具有元素特性 但不包含CLASS或者STYLE
   PROPS = 1 << 3,
 
   /**
@@ -56,7 +56,8 @@ export const enum PatchFlags {
    * diff is always needed to remove the old key. This flag is mutually
    * exclusive with CLASS, STYLE and PROPS.
    */
-  // 动态特性 <comp count="count"></comp>
+  // 动态特性 <comp count="count"></comp> 
+  // 带有动态的key 需要对象props进行全部diff
   FULL_PROPS = 1 << 4,
 
   /**

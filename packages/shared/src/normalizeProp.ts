@@ -3,10 +3,12 @@ import { isNoUnitNumericStyleProp } from './domAttrConfig'
 
 export type NormalizedStyle = Record<string, string | number>
 
+// 标准化元素节点上的内联样式
 export function normalizeStyle(
   value: unknown
 ): NormalizedStyle | string | undefined {
   if (isArray(value)) {
+    //绑定的内联样式是一个数组 转换成一个对象
     const res: NormalizedStyle = {}
     for (let i = 0; i < value.length; i++) {
       const item = value[i]
@@ -30,6 +32,7 @@ export function normalizeStyle(
 const listDelimiterRE = /;(?![^(]*\))/g
 const propertyDelimiterRE = /:(.+)/
 
+// 将字符串格式的内联样式转换成对象
 export function parseStringStyle(cssText: string): NormalizedStyle {
   const ret: NormalizedStyle = {}
   cssText.split(listDelimiterRE).forEach(item => {
@@ -41,6 +44,7 @@ export function parseStringStyle(cssText: string): NormalizedStyle {
   return ret
 }
 
+// 将对象格式的内联样式转换成字符串
 export function stringifyStyle(
   styles: NormalizedStyle | string | undefined
 ): string {
@@ -62,6 +66,7 @@ export function stringifyStyle(
   return ret
 }
 
+// 标准化绑定的Class
 export function normalizeClass(value: unknown): string {
   let res = ''
   if (isString(value)) {
@@ -83,6 +88,7 @@ export function normalizeClass(value: unknown): string {
   return res.trim()
 }
 
+// 标准化props中的Class和Style
 export function normalizeProps(props: Record<string, any> | null) {
   if (!props) return null
   let { class: klass, style } = props

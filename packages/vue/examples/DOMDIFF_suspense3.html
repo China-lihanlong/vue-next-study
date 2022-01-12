@@ -1,0 +1,112 @@
+<div id="app"></div>
+<script src="../dist/vue.global.js"></script>
+<script>
+  const { createApp, ref, defineAsyncComponent } = Vue
+
+
+  const List = {
+    template: `
+      <div>
+        {{list}}
+      </div>
+    `,
+
+    async setup() {
+      const list = ref(null)
+      const userResponse = await fetch('https://reqres.in/api/list?delay=2')
+      const result = await userResponse.json()
+      list.value = result.data
+
+
+      return {
+        list
+      }
+    }
+  }
+  const User = {
+    template: `
+      <div>
+        {{users}}
+      </div>
+    `,
+
+    async setup() {
+      const users = ref(null)
+      const userResponse = await fetch('https://reqres.in/api/user?delay=2')
+      const result = await userResponse.json()
+      users.value = result.data
+
+      return {
+        users
+      }
+    }
+  }
+
+  const Child = {
+    template: `
+    <Suspense timout="0">
+      <template #default>
+        <Users v-if="type===0" />
+        <List  v-else-if="type===1" />
+      </template>  
+      <template #fallback>
+        <div>data loading...</div>
+      </template>  
+    </Suspense>
+    `,
+
+    props: {
+      type: {
+        type: Number
+      }
+    },
+
+    setup() {
+
+    },
+    components: {
+      Users: defineAsyncComponent({
+        loader: () => {
+          return new Promise((resolve, reject) => {
+            return resolve(User)
+          })
+        }
+      }),
+
+      List: defineAsyncComponent({
+        loader: () => {
+          return new Promise((resolve, reject) => {
+            return resolve(List)
+          })
+        }
+      })
+    }
+  }
+
+  const App = {
+    template: `
+      <div>
+      <Child :type="type"/>
+      <button @click="changeType">changeType</button>
+      </div>
+    `,
+
+    setup() {
+      const type = ref(0)
+      function changeType() {
+        type.value === 0 ? type.value = 1 : type.value = 0
+      }
+      return {
+        type,
+        changeType
+      }
+    },
+
+    components: {
+      Child
+    }
+
+  }
+
+  const app = createApp(App).mount('#app')
+</script>

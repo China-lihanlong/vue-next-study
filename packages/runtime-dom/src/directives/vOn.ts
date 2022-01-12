@@ -32,6 +32,7 @@ const modifierGuards: Record<
 /**
  * @private
  */
+// 如果元素带有上面的修饰符中的任意一个，那绑定的事件就是这个
 export const withModifiers = (fn: Function, modifiers: string[]) => {
   return (event: Event, ...args: unknown[]) => {
     for (let i = 0; i < modifiers.length; i++) {
@@ -42,6 +43,7 @@ export const withModifiers = (fn: Function, modifiers: string[]) => {
   }
 }
 
+// 兼容v2的事件修饰符
 // Kept for 2.x compat.
 // Note: IE11 compat for `spacebar` and `del` is removed for now.
 const keyNames: Record<string, string | string[]> = {
@@ -57,9 +59,11 @@ const keyNames: Record<string, string | string[]> = {
 /**
  * @private
  */
+// 处理事件修饰符所应该触发的事件
 export const withKeys = (fn: Function, modifiers: string[]) => {
   let globalKeyCodes: LegacyConfig['keyCodes']
   let instance: ComponentInternalInstance | null = null
+  // 兼容v2键盘事件处理机制
   if (__COMPAT__) {
     instance = getCurrentInstance()
     if (
@@ -78,6 +82,7 @@ export const withKeys = (fn: Function, modifiers: string[]) => {
   }
 
   return (event: KeyboardEvent) => {
+    // 键盘事件处理机制
     if (!('key' in event)) {
       return
     }
@@ -87,6 +92,7 @@ export const withKeys = (fn: Function, modifiers: string[]) => {
       return fn(event)
     }
 
+    /// 兼容v2按键修饰符
     if (__COMPAT__) {
       const keyCode = String(event.keyCode)
       if (

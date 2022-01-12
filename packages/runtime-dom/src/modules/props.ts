@@ -20,6 +20,7 @@ export function patchDOMProp(
   unmountChildren: any
 ) {
   if (key === 'innerHTML' || key === 'textContent') {
+    // 如果存在旧的节点 需要正确的卸载
     if (prevChildren) {
       unmountChildren(prevChildren, parentComponent, parentSuspense)
     }
@@ -27,10 +28,12 @@ export function patchDOMProp(
     return
   }
 
+  // 处理 key = `value` 情况 在自定义元素和特定元素中
   if (
     key === 'value' &&
     el.tagName !== 'PROGRESS' &&
     // custom elements may use _value internally
+    // 自定义元素可以在内部使用 _value
     !el.tagName.includes('-')
   ) {
     // store value as _value as well since
@@ -52,7 +55,7 @@ export function patchDOMProp(
     return
   }
 
-  // 某些特殊情况的值的设置
+  // 某些特殊情况的值的设置 
   if (value === '' || value == null) {
     const type = typeof el[key]
     if (type === 'boolean') {
@@ -75,6 +78,7 @@ export function patchDOMProp(
     }
   }
 
+  // 兼容v2枚举属性行为
   if (
     __COMPAT__ &&
     value === false &&

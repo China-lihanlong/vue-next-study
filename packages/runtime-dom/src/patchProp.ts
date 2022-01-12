@@ -30,12 +30,7 @@ export const patchProp: DOMRendererOptions['patchProp'] = (
     patchStyle(el, prevValue, nextValue)
   } else if (isOn(key)) {
     // ignore v-model listeners
-    // 监听组件上v-model派发出的update:modelValue事件
-    // 在组件上使用 v-model 默认情况下,
-    // 会使用v-model使用modelValue的值作为prop和update:modelValue作为事件
-    // 可以通过向v-model传递值修改这些名称
-    // <my-component v-model:title="bookTitle"></my-component>
-    // 那么子组件则需要一个 `title` prop 并派发出一个update:title事件来进行同步
+    // 更新事件 且不是由v-model派发的事件
     if (!isModelListener(key)) {
       patchEvent(el, key, prevValue, nextValue, parentComponent)
     }
@@ -47,6 +42,7 @@ export const patchProp: DOMRendererOptions['patchProp'] = (
       : shouldSetAsProp(el, key, nextValue, isSVG)
   ) {
     // 校验一些特殊key 例如 SVG的attr 或者是一些 custom attr
+    // 一些attr没有按照规范是如何进行编译 进行转换
     patchDOMProp(
       el,
       key,
@@ -68,7 +64,7 @@ export const patchProp: DOMRendererOptions['patchProp'] = (
     } else if (key === 'false-value') {
       ;(el as any)._falseValue = nextValue
     }
-    // 更新元素上的 attribute
+    // 更新元素上的attribute
     patchAttr(el, key, nextValue, isSVG, parentComponent)
   }
 }
@@ -128,7 +124,7 @@ function shouldSetAsProp(
   }
 
   // native onclick with string value, must be set as attribute
-  // 数据原生的key必须设置为attr
+  // 元素原生的一些key必须设置为attr 如onclick
   if (nativeOnRE.test(key) && isString(value)) {
     return false
   }

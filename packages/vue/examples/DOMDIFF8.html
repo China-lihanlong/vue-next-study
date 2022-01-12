@@ -1,64 +1,355 @@
 <div id="app"></div>
 <script src="../dist/vue.global.js"></script>
 <script>
-  const { createApp, ref } = Vue
+  const { createApp, ref } = Vue;
 
 
-  const ChildComponent = {
-    props: {
-      counter: {
-        type: Number,
-        default: 0
+  ~(() => {
+    const ChildComponent = {
+      props: {
+        counter: {
+          type: Number,
+          // default: 0
+        },
+
+        styleClass: {
+          type: String,
+          default: ''
+        },
+
+        isShow: {
+          type: Boolean,
+        }
       },
 
-      styleClass: {
-        type: String,
-        default: ''
-      }
-    },
+      propsDefault: {
+        styleClass: ''
+      },
 
-    template: `
+      template: `
       <div>
-        <h1 :class="styleClass">{{counter}}</h1>  
+        <h1 v-if="isShow">{{counter}}</h1>  
       </div>
     `
-  }
+    }
+
+
+    const App = {
+      template: `
+      <div>
+        <ChildComponent :isShow="isShow" :counter="counter" :style="{fontSize: counter + 'px'}" />
+        <button @click="addCounter">addCounter</button>
+        <button @click="changeStyleClass">changeStyleClass</button>
+        <p :spellcheck="spellcheck">我是带有spellcheck attribute 的p元素</p>
+        <button @click="changeShow">changeShow</button>
+      </div>
+    `,
+      setup() {
+        const counter = ref(0)
+        function addCounter() {
+          counter.value++
+        }
+
+        const styleClass = ref('colorRed')
+        function changeStyleClass() {
+          styleClass.value === 'colorRed'
+            ? (styleClass.value = 'colorGreen')
+            : (styleClass.value = 'colorRed')
+        }
+
+        const spellcheck = ref(false)
+        function changeSpellcheck() {
+          spellcheck.value === false
+            ? (spellcheck.value = true)
+            : (spellcheck.value = false)
+        }
+
+        const isShow = ref(false)
+        function changeShow() {
+          /* isShow.value === false
+            ? (isShow.value = true)
+            : (isShow.value = false) */
+          isShow.value = 'is-show'
+        }
+
+        return {
+          counter,
+          addCounter,
+          styleClass,
+          changeStyleClass,
+          spellcheck,
+          changeSpellcheck,
+          isShow,
+          changeShow
+        }
+      },
+      components: {
+        ChildComponent
+      },
+    }
+
+    // 组件因为父组件导致更新
+    const Child = {
+
+      props: {
+        show: {
+          type: Boolean
+        }
+      },
+
+      template: `
+      <div>
+        <slot></slot>
+      </div>
+    `,
+
+    }
+
+    const Parent = {
+
+      template: `
+      <div>
+        <Child>
+          <div v-if="show">我是Child组件</div>
+        </Child>
+        <button @click="changeShow">changeShow</button>
+        <button @click="changeKeys">changeKeys</button>
+      </div>
+
+    `,
+
+      setup() {
+
+        const show = ref(true)
+        function changeShow() {
+          console.log(1)
+          show.value === true
+            ? (show.value = false)
+            : (show.value = true)
+        }
+
+        const fontColor = ref('red')
+        function changeFontColor() {
+          fontColor.value === 'red'
+            ? (fontColor.value = 'green')
+            : (fontColor.value = 'red')
+        }
+
+        const keys = ref(0)
+        function changeKeys() {
+          keys.value++
+        }
+
+
+        return {
+          show,
+          changeShow,
+          fontColor,
+          changeFontColor,
+          keys,
+          changeKeys
+        }
+      },
+
+      components: {
+        Child: Child
+      },
+
+      mounted() {
+        console.log(this)
+      },
+    }
+
+    // const app = createApp(App).mount('#app')
+    // const app = createApp(Parent).mount('#app')
+  })()
+
+
+  ~(() => {
+    const Child = {
+      template: `
+      <div>
+      </div>
+    `,
+
+      props: {
+        info: {
+          type: String,
+          default: 'false',
+          require: true,
+          validator: () => {
+            return ['success', 'warning', 'danger'].includes(value)
+          }
+        }
+      }
+    }
+
+    const Parent = {
+      template: `
+      <div>
+        <Child :info="info" />
+        <input type="text" :readonly="isReadonly" />
+        <button @click="changeData">changeData</button>
+      </div>
+    `,
+
+      setup() {
+        const info = '我是Child组件'
+        const isReadonly = ref(false)
+        function changeData() {
+          isReadonly.value = !isReadonly.value
+        }
+        return {
+          info,
+          isReadonly,
+          changeData
+        }
+      },
+
+      components: {
+        Child
+      }
+    }
+  })()
+
+  ~(() => {
+    const Child = {
+      template: `
+    <div>
+      {{counter}}
+      <button @click="(() => counter % 2 === 0 ? increment : decrement)()">changeCounter</button>
+    </div>
+    `,
+      props: {
+        counter: {
+          type: Number
+        },
+
+        increment: {
+          type: Function
+        },
+
+        decrement: {
+          type: Function
+        }
+      }
+    }
+
+    const App = {
+      template: `
+      <Child :counter="counter" :increment="increment" :decrement="decrement" />
+      <input type="text" :value="counter" />
+    `,
+
+      setup() {
+        const counter = ref(0)
+
+        function increment() {
+          counter.value++
+        }
+
+        function decrement() {
+          counter.value--
+        }
+
+        return {
+          counter,
+          increment,
+          decrement,
+        }
+      },
+
+      components: {
+        Child
+      }
+    }
+  })()
 
 
   const App = {
     template: `
-      <div>
-        <ChildComponent :counter="counter" :styleClass="styleClass" :style="{fontSize: counter + 'px'}" />
-        <button @click="addCounter">addCounter</button>
-        <button @click="changeStyleClass">changeStyleClass</button>
-      </div>
+    <p @click.self="clickHanlder">{{counter}}</p>
+    <button @click="changeClickHanlder">changeClickHanlder</button>
     `,
+
     setup() {
+      const styleObject = {
+        color: 'red',
+        fontSize: '20px'
+      }
+
+      const styleObject2 = {
+        fontWeight: '900',
+        opacity: 0.5
+      }
+
+      const styleArr = [styleObject, styleObject2, 'background: green']
+
+      const color = 'red';
+      const fontSize = '20px';
+      const style = ref(`color: ${color}; font-size: ${fontSize};`)
+      const show = ref(true)
+      function changeShow() {
+        // changeDisplay()
+        // show.value = !show.value
+        style.value = undefined
+      }
+      const display = ref('none')
+      function changeDisplay() {
+      }
+
       const counter = ref(0)
       function addCounter() {
         counter.value++
       }
 
-      const styleClass = ref('colorRed')
-      function changeStyleClass() {
-        styleClass.value === 'colorRed'
-          ? (styleClass.value = 'colorGreen')
-          : (styleClass.value = 'colorRed')
+      const clickHanlder = ref(null)
+
+      function logCounter() {
+        console.log(counter.value)
       }
 
+
+      function changeClickHanlder() {
+        if (clickHanlder.value === addCounter) {
+          clickHanlder.value = logCounter
+        } else {
+          clickHanlder.value = addCounter
+        }
+      }
       return {
+        styleObject,
+        styleObject2,
+        color,
+        fontSize,
+        style,
+        show,
+        changeShow,
+        styleArr,
         counter,
         addCounter,
-        styleClass,
-        changeStyleClass
+        logCounter,
+        changeClickHanlder,
+        clickHanlder
       }
     },
-    components: {
-      ChildComponent
+
+    mounted() {
+      console.dir(document.querySelector('p'))
     }
   }
-
   const app = createApp(App).mount('#app')
+
+
+  /* if(key[0] === '.') {
+    key = key.slice(1)
+    return true
+  } else if (key[0] === '^') {
+    key = key.slice(1)
+    return false
+  } else {
+    return shouldSetAsProp(el, key, nextValue, isSVG)
+  } */
 </script>
 <style>
 

@@ -223,6 +223,7 @@ const getPublicInstance = (
   return getPublicInstance(i.parent)
 }
 
+// Vue代理属性 映射Vue中一些数据 看似是属性 其实都是箭头函数
 export const publicPropertiesMap: PublicPropertiesMap = /*#__PURE__*/ extend(
   Object.create(null),
   {
@@ -334,11 +335,13 @@ export const PublicInstanceProxyHandlers: ProxyHandler<any> = {
       }
     }
 
+    // 访问vue代理属性 从publicPropertiesMap中取出对应的代理属性
     const publicGetter = publicPropertiesMap[key]
     let cssModule, globalProperties
     // public $xxx properties 访问以 '$' 开头的公共属性 如：$data $el
     if (publicGetter) {
       if (key === '$attrs') {
+        // 如果访问的是$attrs 需要收集一遍依赖 可能会有插槽去使用他
         track(instance, TrackOpTypes.GET, key)
         __DEV__ && markAttrsAccessed()
       }
@@ -468,7 +471,9 @@ if (__DEV__ && !__TEST__) {
   }
 }
 
+// 接管外部访问vue实例 任何访问都会被拦截
 // vue实例被代理 渲染函数运行时 从外部获取数据的唯一接口
+// 外部访问vue代理属性或者方法 会将其拦截 先进行第一次处理
 export const RuntimeCompiledPublicInstanceProxyHandlers = /*#__PURE__*/ extend(
   {},
   PublicInstanceProxyHandlers,
