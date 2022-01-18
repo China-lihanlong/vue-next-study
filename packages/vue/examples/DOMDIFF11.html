@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document</title>
+</head>
+
+<body>
+  <script>
+    function getSequence(arr) {
+      // 数组p的作用：记录当前项的在最长递增子序列中位置的前一个位置
+      // 复制一份序列 用于产生子序列映射
+      const p = arr.slice()
+      const result = [0]
+      let i, j, u, v, c
+      /**
+       * c 是中间值的索引
+       * i 是当前比较项的索引
+       * j 是当前项的前一个索引
+       * u 是数组的前半部分
+       * v 是数组的后半部分
+       */
+      const len = arr.length
+      for (i = 0; i < len; i++) {
+        /**
+         * 使用数组中的每一项和结果中索引的最后一个(当成最大的)对应的值(我把它叫做：lastValue)对比
+         * 如果当前项大于lastValue 就可以将当前项的索引存储在结果中
+         * 当前处理完成 就可以跳出当前循环 进行下一项的处理
+         */
+
+        // 当前对比项
+        const arrI = arr[i]
+        if (arrI !== 0) {
+          // 现存的最长递增子序列的最后一个的索引
+          j = result[result.length - 1]
+          if (arr[j] < arrI) {
+            // 和当前对比项对比 大于 添加映射 并将索引加入的result中 跳过当前循环
+            p[i] = j
+            // 将值的索引添加到结果中 在这个值符合条件的情况
+            result.push(i)
+            continue
+          }
+          u = 0
+          v = result.length - 1
+          /**
+           * 二分算法查找result中的区间
+           */
+          while (u < v) {
+            // 这里是用位运算的二分算法
+            c = (u + v) >> 1
+            if (arr[result[c]] < arrI) {
+              u = c + 1
+            } else {
+              v = c
+            }
+          }
+          // arr[result[u]] 可能是left的最后一个 也可能是right的第一个 找到其中的第一个大于当前对比值的将其替换调
+          if (arrI < arr[result[u]]) {
+            // 当前对比项小于 arr[result[u]] 将result[u]的索引修改为当前对比项的索引
+            if (u > 0) {
+              // u 大于 0 指 arr[result[u]]不能是最长递增子序列的第一个 第一个不需要添加索引映射
+              p[i] = result[u - 1]
+            }
+            // 即 result[u] < result[u + 1]
+            result[u] = i
+          }
+        }
+      }
+
+      /**
+       * 回溯数组 数组p中记录最长递增子序列的映射 根据映射找到正确的最长递增子序列索引
+       */
+      u = result.length
+      v = result[u - 1]
+      while (u-- > 0) {
+        result[u] = v
+        v = p[v]
+      }
+      return result
+    }
+
+    const arr = [4, 3, 6, 5, 6, 7, 6, 2]
+
+    const result = getSequence(arr)
+
+  </script>
+</body>
+
+</html>

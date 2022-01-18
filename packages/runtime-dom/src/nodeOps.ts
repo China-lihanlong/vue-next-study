@@ -5,10 +5,14 @@ export const svgNS = 'http://www.w3.org/2000/svg'
 // 可能是浏览器的Document
 const doc = (typeof document !== 'undefined' ? document : null) as Document
 
+// 静态节点的缓存
+// 在每次初始化找之前的缓存
+// 如果没有找到 在插入结构中之前进行缓存
 const staticTemplateCache = new Map<string, DocumentFragment>()
 
-// Vue支持多平台，这里是浏览器平台对节点的操作
+// Vue支持多平台，只需要用户提供了平台的操作函数就可以在平台上使用vue 这里是浏览器平台对节点的操作
 export const nodeOps: Omit<RendererOptions<Node, Element>, 'patchProp'> = {
+  // 将节点插入到自己父节点中
   insert: (child, parent, anchor) => {
     parent.insertBefore(child, anchor || null)
   },
@@ -43,6 +47,7 @@ export const nodeOps: Omit<RendererOptions<Node, Element>, 'patchProp'> = {
   // 创建一个注释
   createComment: text => doc.createComment(text),
 
+  // 设置文本
   setText: (node, text) => {
     node.nodeValue = text
   },
@@ -102,6 +107,7 @@ export const nodeOps: Omit<RendererOptions<Node, Element>, 'patchProp'> = {
       }
       staticTemplateCache.set(content, template)
     }
+    // 更新时，静态节点的的容器不会被移除 还存在
     parent.insertBefore(template.cloneNode(true), anchor)
     return [
       // first

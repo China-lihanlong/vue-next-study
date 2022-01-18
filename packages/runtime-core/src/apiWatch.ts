@@ -350,12 +350,14 @@ function doWatch(
           isCompatEnabled(DeprecationTypes.WATCH_ARRAY, instance))
       ) {
         // cleanup before running cb again
+        // 再次运行cb之前进行清理
         if (cleanup) {
           cleanup()
         }
         // 带错误处理的执行的watch回调函数
         callWithAsyncErrorHandling(cb, instance, ErrorCodes.WATCH_CALLBACK, [
           newValue,
+          // 第一次更改时，将未定义作为旧值传递
           // pass undefined as the old value when it's changed for the first time
           oldValue === INITIAL_WATCHER_VALUE ? undefined : oldValue,
           onInvalidate

@@ -154,6 +154,7 @@ export function initProps(
   isStateful: number, // result of bitwise flag comparison
   isSSR = false
 ) {
+  // 创建两个空对象 将来用来存储props和attrs
   const props: Data = {}
   const attrs: Data = {}
   def(attrs, InternalObjectKey, 1)
@@ -167,6 +168,7 @@ export function initProps(
 
   // propsOptions 是一个数组 第一个是所有的key的规则 第二个是需要转换值的key
   // ensure all declared prop keys are present
+  // 确保用户声明的props都可以被访问 给一个undefined 不会报错
   for (const key in instance.propsOptions[0]) {
     if (!(key in props)) {
       props[key] = undefined

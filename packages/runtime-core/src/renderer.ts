@@ -518,7 +518,7 @@ function baseCreateRenderer(
     }
   }
 
-  // 挂载或者更新文本
+  // 解析文本节点
   const processText: ProcessTextOrCommentFn = (n1, n2, container, anchor) => {
     if (n1 == null) {
       // 没有旧文本存在 挂载文本
@@ -530,7 +530,7 @@ function baseCreateRenderer(
         anchor
       )
     } else {
-      // 直接更新文本 在新和旧的节点都存在的
+      // 直接更新文本 在新和旧的节点都存在的情况下
       const el = (n2.el = n1.el!)
       if (n2.children !== n1.children) {
         // hostSetText node.textContent = n2.children
@@ -568,6 +568,7 @@ function baseCreateRenderer(
   ) => {
     // static nodes are only present when used with compiler-dom/runtime-dom
     // which guarantees presence of hostInsertStaticContent.
+    // 静态节点仅在与编译器dom/运行时dom一起使用时才存在，后者保证hostInsertStaticContent的存在。
     ;[n2.el, n2.anchor] = hostInsertStaticContent!(
       n2.children as string,
       container,
@@ -681,8 +682,7 @@ function baseCreateRenderer(
     let el: RendererElement
     let vnodeHook: VNodeHook | undefined | null
     const { type, props, shapeFlag, transition, patchFlag, dirs } = vnode
-    // 在生成环境中是克隆一份当前的重新赋值给el
-    // 在开发环境中会重新创建一个新元素给el
+    // 如果el不存在 会创建 存在且是静态节点会重用
     if (
       !__DEV__ &&
       vnode.el &&
@@ -698,7 +698,7 @@ function baseCreateRenderer(
       // 仅在生产环境中执行此操作，因为克隆树无法更新HMR(热更新)
       el = vnode.el = hostCloneNode(vnode.el)
     } else {
-      // 重新创建一个元素赋值给 el
+      // 创建一个元素赋值给 el
       el = vnode.el = hostCreateElement(
         vnode.type as string,
         isSVG,
@@ -711,9 +711,10 @@ function baseCreateRenderer(
       // 先去挂载子节点 因为某些道具可能依赖于已渲染的子对象内容
       // 例如事件监听
       if (shapeFlag & ShapeFlags.TEXT_CHILDREN) {
-        // 直接设置子节点 在子节点是文本子节点情况下
+        // 直接设置子节点 在子节点是文本子节点情况下 当前节点的解析结束
         hostSetElementText(el, vnode.children as string)
       } else if (shapeFlag & ShapeFlags.ARRAY_CHILDREN) {
+        // 当前节点有多个子节点 遍历每一个子节点 再次调用patch解析
         // array children
         mountChildren(
           vnode.children as VNodeArrayChildren,
@@ -731,7 +732,7 @@ function baseCreateRenderer(
       if (dirs) {
         invokeDirectiveHook(vnode, null, parentComponent, 'created')
       }
-      // props
+      // props 给节点初始化特性
       if (props) {
         for (const key in props) {
           if (key !== 'value' && !isReservedProp(key)) {
@@ -1080,6 +1081,7 @@ function baseCreateRenderer(
           ? hostParentNode(oldVNode.el)!
           : // In other cases, the parent container is not actually used so we
             // just pass the block element here to avoid a DOM parentNode call.
+            // 在其他情况下，实际上没有使用父容器，因此我们只在此处传递block元素，以避免DOM parentNode调用。
             fallbackContainer
       patch(
         oldVNode,
@@ -1352,7 +1354,7 @@ function baseCreateRenderer(
       if (__DEV__) {
         startMeasure(instance, `init`)
       }
-      // 安装组件：选项处理
+      // 安装组件：选项处理 初始化组件实例
       setupComponent(instance)
       if (__DEV__) {
         endMeasure(instance, `init`)
@@ -1439,6 +1441,7 @@ function baseCreateRenderer(
     isSVG,
     optimized
   ) => {
+    // 创建更新函数
     // 这个函数主要作用有两个：初次挂载节点和更新旧节点
     const componentUpdateFn = () => {
       // instance.isMounted的作用是表示当前组件实例是否挂载了
@@ -1465,7 +1468,7 @@ function baseCreateRenderer(
         ) {
           invokeVNodeHook(vnodeHook, parent, initialVNode)
         }
-        // 兼容vue2的 option api 派发一个 beforeMount 生命周期钩子函数
+        // 兼容vue2的 VNode hook:beforeMount 生命周期函数配置
         if (
           __COMPAT__ &&
           isCompatEnabled(DeprecationTypes.INSTANCE_EVENT_HOOKS, instance)
@@ -1476,7 +1479,7 @@ function baseCreateRenderer(
         // 开始挂载组件 允许递归
         effect.allowRecurse = true
 
-        // 先 服务端渲染(Server Side Render) 
+        // 服务端渲染(Server Side Render) 
         if (el && hydrateNode) {
           // vnode has adopted host node - perform hydration instead of mount.
           // 服务端渲染不是挂载 而是通过hydrateNode将数据渲染到结构中
@@ -1566,7 +1569,7 @@ function baseCreateRenderer(
             parentSuspense
           )
         }
-        // 兼容vue2的option API mounted生命周期函数配置
+        // 兼容vue2的 VNode  hook:mounted 生命周期函数配置
         if (
           __COMPAT__ &&
           isCompatEnabled(DeprecationTypes.INSTANCE_EVENT_HOOKS, instance)
@@ -1587,6 +1590,7 @@ function baseCreateRenderer(
         // 但是服务器渲染不会有此钩子函数
         if (initialVNode.shapeFlag & ShapeFlags.COMPONENT_SHOULD_KEEP_ALIVE) {
           instance.a && queuePostRenderEffect(instance.a, parentSuspense)
+          // 兼容vue2的 hook:activated VNode 生命周期函数配置
           if (
             __COMPAT__ &&
             isCompatEnabled(DeprecationTypes.INSTANCE_EVENT_HOOKS, instance)
@@ -1648,7 +1652,7 @@ function baseCreateRenderer(
         if ((vnodeHook = next.props && next.props.onVnodeBeforeUpdate)) {
           invokeVNodeHook(vnodeHook, parent, next, vnode)
         }
-        // vue2 beforeUpdate options api 生命周期函数
+        // 兼容vue2的 VNode hook:beforeUpdate 生命周期函数配置
         if (
           __COMPAT__ &&
           isCompatEnabled(DeprecationTypes.INSTANCE_EVENT_HOOKS, instance)
@@ -1699,6 +1703,7 @@ function baseCreateRenderer(
           // self-triggered update. In case of HOC, update parent component
           // vnode el. HOC is indicated by parent instance's subTree pointing
           // to child component's vnode
+          // 自触发更新。如果是HOC，则更新父组件vnode el。HOC由指向子组件vnode的父实例子树表示
           updateHOCHostEl(instance, nextTree.el)
         }
         // composition API 生命周期函数 onUpdated
@@ -1714,7 +1719,7 @@ function baseCreateRenderer(
             parentSuspense
           )
         }
-        // 兼容vue2 生命周期函数 updated
+        // 兼容vue2的 VNode hook:updated 生命周期函数配置
         if (
           __COMPAT__ &&
           isCompatEnabled(DeprecationTypes.INSTANCE_EVENT_HOOKS, instance)
@@ -1745,14 +1750,17 @@ function baseCreateRenderer(
     // create reactive effect for rendering
     // 创建渲染effect 可以建立一个依赖关系：传入effect的回调函数和响应式数据之间 
     // 等同于一个渲染Watcher
+    // 创建更新规则
     const effect = new ReactiveEffect(
       componentUpdateFn,
       // DOM diff 入口 一般都是由数据改变而触发的调度函数
       // 调度函数内部执行的是componentUpdateFn包装后的函数
+      // 主要是以参数二的方式执行参数一
       () => queueJob(instance.update),
       instance.scope // track it in component's effect scope
     )
 
+    // 获取更新函数
     // 将其挂载到组件实例上作为更新执行器 更新执行器会默认执行一遍
     const update = (instance.update = effect.run.bind(effect) as SchedulerJob)
     update.id = instance.uid
@@ -1771,6 +1779,7 @@ function baseCreateRenderer(
       update.ownerInstance = instance
     }
 
+    // 首次执行更新函数
     update()
   }
 
@@ -2193,10 +2202,10 @@ function baseCreateRenderer(
           // 没有找到 旧节点没有对应的新节点 卸载这个节点
           unmount(prevChild, parentComponent, parentSuspense, true)
         } else {
-          // oldIndex值不为零 说明有对应的新节点存在 设置为移动了几个位置
+          // oldIndex值不为零 说明有对应的节点存在 设置为节点索引+1
           newIndexToOldIndexMap[newIndex - s2] = i + 1
           // maxNewIndexSoFar 是当前对比的旧节点对应新节点的最大位置(默认认为是安装顺序来的)
-          // 如果小于了对应的最大的位置说明这个节点向前移动了
+          // 如果小于了对应的最大的位置说明这个节点移动了
           if (newIndex >= maxNewIndexSoFar) {
             maxNewIndexSoFar = newIndex
           } else {
@@ -2543,6 +2552,7 @@ function baseCreateRenderer(
       invokeArrayFns(bum)
     }
 
+    // 兼容vue2的 VNode hook:beforeDestroy 生命周期函数配置
     if (
       __COMPAT__ &&
       isCompatEnabled(DeprecationTypes.INSTANCE_EVENT_HOOKS, instance)
@@ -2570,7 +2580,7 @@ function baseCreateRenderer(
     if (um) {
       queuePostRenderEffect(um, parentSuspense)
     }
-    // option api 生命周期函数选项 destroyed 也是在一个组件卸载完成之后执行
+    // 兼容vue2的 VNode hook:destroyed 生命周期函数配置
     // 同样需要放在渲染队列之后执行
     if (
       __COMPAT__ &&
@@ -2852,7 +2862,7 @@ export function traverseStaticChildren(n1: VNode, n2: VNode, shallow = false) {
 // 最长递增子序列
 // 这个方法返回的是arr中最长递增子序列的中所有项对应的索引汇总
 function getSequence(arr: number[]): number[] {
-  // 数组p的作用：记录当前项的在最长递增子序列中位置的前一个位置
+  // 数组p的作用：和原数组一样的长度 每一项记录的是自己在result中的前一个位置的值 值是索引 对应的是原数组中的值
   const p = arr.slice()
   const result = [0]
   let i, j, u, v, c
@@ -2865,17 +2875,18 @@ function getSequence(arr: number[]): number[] {
    */
   const len = arr.length
   for (i = 0; i < len; i++) {
-    // 使用数组中的每一项和结果中索引的最后一个(当成最大的)对应的值(我把它叫做：lastValue)对比
-    // 如果当前项大于lastValue 就可以将当前项的索引存储在结果中
-    // 当前处理完成 就可以跳出当前循环 进行下一项的处理
-    // 创建严格递增子数组
-    // 但是呢也有可能小于的情况, 说明这里无法完全处理完毕 需要下面的处理
+    /**
+     * 使用数组中的每一项和结果中索引的最后一个(当成最大的)对应的值(我把它叫做：lastValue)对比
+     * 如果当前项大于lastValue 就可以将当前项的索引存储在结果中
+     * 当前处理完成 就可以跳出当前循环 进行下一项的处理
+     */
+
     // 当前对比项
     const arrI = arr[i]
     if (arrI !== 0) {
       j = result[result.length - 1]
       if (arr[j] < arrI) {
-        // 记录当前项在子序列中的前一个的缩影
+        // 和当前对比项对比 大于 添加映射 并将索引加入的result中 跳过当前循环
         p[i] = j
         // 将值的索引添加到结果中 在这个值符合条件的情况
         result.push(i)
@@ -2883,11 +2894,11 @@ function getSequence(arr: number[]): number[] {
       }
       u = 0
       v = result.length - 1
-      // 在这里 说明result内已经存储了最长递增子序列的一部分，但是当前对比项比lastValue小
-      // 证明当前对比项应当在lastValue前面，但是我们不能确定lastValue前面的是不是还是比当前项大
-      // 这里采用的是二分算法 是通过二分查找在已经存在的递增子数组中找到位置给当前项替换
+      // 二分算法查找result中的区间 找到递增子序列中里当前对比项尽量相差小值的索引
+      // 所对应的值是就是arr[result[u]] 这会出现三种情况，如果是小于和等于，不做任何操作
+      // 如果是大于 将result[u]的值改为当前索引 i  u不能是0 u等于0则意思是我是第一个 前面没有了
+      // u不等于0 就在 p数组中i的位置上记录我在result中的前一个的值
       while (u < v) {
-        // 这里是用位运算的二分算法
         c = (u + v) >> 1
         if (arr[result[c]] < arrI) {
           u = c + 1
@@ -2895,20 +2906,19 @@ function getSequence(arr: number[]): number[] {
           v = c
         }
       }
+      // arr[result[u]] 是通过前面二分算法
       if (arrI < arr[result[u]]) {
+        // 当前对比项小于 arr[result[u]] 将result[u]的索引修改为当前对比项的索引
         if (u > 0) {
-          // 修改映射表中的记录值
+          // u等于0 说明我是最小的 前面没有比我更小的了
           p[i] = result[u - 1]
         }
         result[u] = i
       }
     }
   }
-  // 由于可能会出现后面的值比前面的值小，然后导致的替换
-  // [7, 8] 下一个是3 => [3, 8] 但是呢 最长递增子序列还是 [7, 8] 长度是2
-  // 如果后面扩列了 最长递增子序列的长度改变了，那就不是 [7, 8]了
-  // 出现了比8小且比3大的值 8就会被替换掉 
-  // 一直到酒最后 通过映射表数组p从后往前推 (较大的值一般都是直接拼接到后面)
+  // 回溯数组 数组p中记录最长递增子序列的映射 根据映射找到正确的最长递增子序列索引
+  // 按照当前result长度
   u = result.length
   v = result[u - 1]
   while (u-- > 0) {

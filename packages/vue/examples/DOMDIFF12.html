@@ -1,0 +1,55 @@
+<div id="app"></div>
+<script src="../dist/vue.global.js"></script>
+<script>
+  const { createApp, h } = Vue
+
+  const Comp = {
+    template: `
+      <slot></slot>
+    `,
+  }
+
+  const App = {
+
+    template: `
+      <Comp>
+        <template v-slot:default>
+          <div>我是分发default内容</div>  
+        </template>
+        <template v-slot:header>
+          <div>我是分发header内容</div>  
+        </template>
+        <template v-slot:container>
+          <div>我是container内容</div>  
+        </template>
+        <template v-slot:footer>
+          <div>我是footer内容</div>  
+        </template>
+      </Comp>
+    `,
+
+    components: {
+      Comp
+    },
+
+    /* render() {
+      return h(Comp, null, {
+        default: () => h('div', null, '我是分发default内容'),
+        header: () => h('div', null, '我是分发header内容'),
+        container: () => h('div', null, '我是container内容'),
+        footer: () => h('div', null, '我是footer内容')
+      })
+    } */
+
+    /* render() {
+      return h(Comp, null, [
+        h('div', null, '我是分发default内容'),
+        h('div', null, '我是分发header内容'),
+        h('div', null, '我是container内容'),
+        h('div', null, '我是footer内容')
+      ])
+    } */
+  }
+
+  const app = createApp(App).mount('#app')
+</script>

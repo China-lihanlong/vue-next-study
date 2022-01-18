@@ -574,6 +574,10 @@ export function setupComponent(
 ) {
   isInSSRComponentSetup = isSSR
 
+  // props是传递给组件props数据 包含props和attrs的全部数据 
+  // children可能插槽内容 在vnode产生的时候会进行标准化，使用的是normalizeVNode
+  // 如果children插槽内容 那children是一个对象 里面有一个或多个函数 {defualt: () => {/* code... */}}
+  // 不是的话 就是一个数组 里面有多个子vnode
   const { props, children } = instance.vnode
   const isStateful = isStatefulComponent(instance)
   // 初始化属性和插槽
@@ -588,6 +592,7 @@ export function setupComponent(
   return setupResult
 }
 
+// 安装有状态的组件：1. 上下文做代理 2.执行setup 3. 处理v2功能选项 applyOptions
 function setupStatefulComponent(
   instance: ComponentInternalInstance,
   isSSR: boolean

@@ -1,0 +1,112 @@
+<div id="app"></div>
+<script src="../dist/vue.global.js"></script>
+<script>
+  const {
+    createApp,
+    ref,
+    createStaticVNode,
+    h
+  } = Vue;
+
+  ~(() => {
+    const App = {
+      setup() {
+        const staticVNode = ref(createStaticVNode(`<div>sdadsd</div><div>sdadsd</div><div>sdadsd</div><div>sdadsd</div><div>sdadsd</div><div>sdadsd</div><div>sdadsd</div><div>sdadsd</div><div>sdadsd</div><div>sdadsd</div><div>sdadsd</div><div>sdadsd</div><div>sdadsd</div><div>sdadsd</div><div>sdadsd</div><div>sdadsd</div><div>sdadsd</div><div>sdadsd</div><div>sdadsd</div><div>sdadsd</div><div>sdadsd</div><div>sdadsd</div><div>sdadsd</div><div>sdadsd</div><div>sdadsd</div><div>sdadsd</div><div>sdadsd</div><div>sdadsd</div><div>sdadsd</div><div>sdadsd</div><div>sdadsd</div><div>sdadsd</div><div>sdadsd</div><div>sdadsd</div><div>sdadsd</div><div>sdadsd</div><div>sdadsd</div><div>sdadsd</div><div>sdadsd</div><div>sdadsd</div><div>sdadsd</div><div>sdadsd</div><div>sdadsd</div><div>sdadsd</div><div>sdadsd</div><div>sdadsd</div><div>sdadsd</div><div>sdadsd</div><div>sdadsd</div><div>sdadsd</div><div>sdadsd</div><div>sdadsd</div><div>sdadsd</div><div>sdadsd</div><div>sdadsd</div><div>sdadsd</div><div>sdadsd</div><div>sdadsd</div><div>sdadsd</div><div>sdadsd</div><div>sdadsd</div><div>sdadsd</div><div>sdadsd</div><div>sdadsd</div><div>sdadsd</div><div>sdadsd</div><div>sdadsd</div><div>sdadsd</div><div>sdadsd</div><div>sdadsd</div><div>sdadsd</div><div>sdadsd</div><div>sdadsd</div><div>sdadsd</div><div>sdadsd</div><div>sdadsd</div><div>sdadsd</div><div>sdadsd</div><div>sdadsd</div><div>sdadsd</div><div>sdadsd</div><div>sdadsd</div><div>sdadsd</div><div>sdadsd</div>
+      `))
+        function changeStaticVNode() {
+          staticVNode.value = createStaticVNode(`<div>Hello World!</div><div>Hello World!</div><div>Hello World!</div><div>Hello World!</div><div>Hello World!</div><div>Hello World!</div><div>Hello World!</div><div>Hello World!</div><div>Hello World!</div><div>Hello World!</div><div>Hello World!</div><div>Hello World!</div><div>Hello World!</div><div>Hello World!</div><div>Hello World!</div><div>Hello World!</div><div>Hello World!</div><div>Hello World!</div><div>Hello World!</div><div>Hello World!</div><div>Hello World!</div><div>Hello World!</div><div>Hello World!</div><div>Hello World!</div><div>Hello World!</div><div>Hello World!</div><div>Hello World!</div><div>Hello World!</div><div>Hello World!</div><div>Hello World!</div><div>Hello World!</div><div>Hello World!</div><div>Hello World!</div><div>Hello World!</div><div>Hello World!</div><div>Hello World!</div><div>Hello World!</div><div>Hello World!</div><div>Hello World!</div><div>Hello World!</div><div>Hello World!</div><div>Hello World!</div><div>Hello World!</div><div>Hello World!</div><div>Hello World!</div><div>Hello World!</div><div>Hello World!</div><div>Hello World!</div><div>Hello World!</div><div>Hello World!</div><div>Hello World!</div><div>Hello World!</div><div>Hello World!</div><div>Hello World!</div><div>Hello World!</div><div>Hello World!</div><div>Hello World!</div><div>Hello World!</div><div>Hello World!</div><div>Hello World!</div><div>Hello World!</div><div>Hello World!</div><div>Hello World!</div><div>Hello World!</div><div>Hello World!</div><div>Hello World!</div><div>Hello World!</div><div>Hello World!</div><div>Hello World!</div><div>Hello World!</div><div>Hello World!</div><div>Hello World!</div><div>Hello World!</div><div>Hello World!</div><div>Hello World!</div><div>Hello World!</div><div>Hello World!</div><div>Hello World!</div><div>Hello World!</div><div>Hello World!</div><div>Hello World!</div><div>Hello World!</div><div>Hello World!</div><div>Hello World!</div><div>Hello World!</div><div>Hello World!</div><div>Hello World!</div><div>Hello World!</div><div>Hello World!</div><div>Hello World!</div><div>Hello World!</div><div>Hello World!</div><div>Hello World!</div><div>Hello World!</div><div>Hello World!</div><div>Hello World!</div><div>Hello World!</div><div>Hello World!</div><div>Hello World!</div><div>Hello World!</div><div>Hello World!</div><div>Hello World!</div>`)
+        }
+
+        return () => h('div', [h('button', { onClick: changeStaticVNode }, 'changeStaticVNode'), staticVNode.value])
+        /*  */
+      }
+    }
+  })()
+
+
+  ~(() => {
+    const App = {
+      setup() {
+
+        const nodeText = ref('hellow world')
+        function changeNodeText() {
+          nodeText.value = 'goodbye'
+        }
+
+        return () => {
+          return h(
+            'div',
+            [
+              nodeText.value,
+              h(
+                'button',
+                {
+                  onClick: changeNodeText
+                },
+                'changeNodeText'
+              )
+            ]
+          )
+        }
+      }
+    }
+  })()
+
+  const App = {
+    setup() {
+
+      const counter = ref(0)
+      const list = ref([{ id: 0 }, { id: 1 }, { id: 2 }, { id: 3 }, { id: 4 }])
+
+      function addCounter() {
+        counter.value++
+      }
+
+      return {
+        counter,
+        addCounter,
+        list,
+        foo: 'a'
+      }
+
+    },
+
+    render(_ctx, _cache, $props, $setup, $data, $options) {
+      const {
+        Fragment: _Fragment,
+        toDisplayString: _toDisplayString,
+        createElementVNode: _createElementVNode,
+        openBlock: _openBlock,
+        createElementBlock: _createElementBlock,
+        createTextVNode: _createTextVNode,
+        createStaticVNode: _createStataicVNode,
+        createCommentVNode: _createCommentVNode,
+        normalizeClass: _normalizeClass
+      } = Vue
+
+      const _hoisted_1 = _createStataicVNode(`<div id="1">
+  <div id="1">
+    <div id="1">
+      <div id="1">
+        <div id="1"></div>
+      </div>
+    </div>
+  </div>
+</div>`, 1)
+      const _hoisted_2 = _createTextVNode('vue3初始化')
+
+      return (_openBlock(), _createElementBlock(_Fragment, null, [
+        _createCommentVNode('vue3初始化'),
+        _hoisted_1,
+        _createElementVNode('div', {
+          class: _normalizeClass(_ctx.foo)
+        }, [], 2 /* CLASS */),
+        _hoisted_2
+      ], 64 /* STABLE_FRAGMENT */, _hoisted_1))
+    }
+
+
+  }
+
+  const app = createApp(App).component('Comp', { template: `我说` }).mount('#app')
+</script>
