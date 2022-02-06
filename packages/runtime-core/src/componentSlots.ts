@@ -33,10 +33,12 @@ export type Slots = Readonly<InternalSlots>
 export type RawSlots = {
   [name: string]: unknown
   // manual render fn hint to skip forced children updates
+  // 手动渲染函数提示跳过强制子级更新
   $stable?: boolean
   /**
    * for tracking slot owner instance. This is attached during
    * normalizeChildren when the component vnode is created.
+   * 在附加期间，用于跟踪插槽所有者，创建vnode的时候规范化children
    * @internal
    */
   _ctx?: ComponentInternalInstance | null
@@ -46,6 +48,8 @@ export type RawSlots = {
    * object may be directly passed down to a child component in a manual
    * render function, and the optimization hint need to be on the slot object
    * itself to be preserved.
+   * 指是经由编译器生成的插槽我们使用保留属性而不是vnode patchFlags 因为插槽属性可以在手动渲染函数中直接传递给子组件
+   * 并且优化提示需要保留插槽对象本身
    * @internal
    */
   _?: SlotFlags
@@ -85,6 +89,7 @@ const normalizeObjectSlots = (
 ) => {
   const ctx = rawSlots._ctx
   for (const key in rawSlots) {
+    // 不能是内部属性
     if (isInternalKey(key)) continue
     const value = rawSlots[key]
     if (isFunction(value)) {

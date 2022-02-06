@@ -65,6 +65,7 @@ export type ContextualRenderFn = {
 
 /**
  * Wrap a slot function to memoize current rendering instance
+ * // 包装当前插槽函数以便以及当前渲染实例
  * @private compiler helper
  */
 export function withCtx(
@@ -72,9 +73,11 @@ export function withCtx(
   ctx: ComponentInternalInstance | null = currentRenderingInstance,
   isNonScopedSlot?: boolean // __COMPAT__ only
 ) {
+  // 
   if (!ctx) return fn
 
   // already normalized
+  // 这个函数带有_n属性代表以及规范化和包装过，直接返回
   if ((fn as ContextualRenderFn)._n) {
     return fn
   }
@@ -103,14 +106,17 @@ export function withCtx(
   }
 
   // mark normalized to avoid duplicated wrapping
+  // 已经包装过了不需要重复包装。
   renderFnWithContext._n = true
   // mark this as compiled by default
   // this is used in vnode.ts -> normalizeChildren() to set the slot
   // rendering flag.
   renderFnWithContext._c = true
   // disable block tracking by default
+  // 默认禁用块跟踪
   renderFnWithContext._d = true
   // compat build only flag to distinguish scoped slots from non-scoped ones
+  // 用于区分作用域插槽和非作用域插槽
   if (__COMPAT__ && isNonScopedSlot) {
     renderFnWithContext._ns = true
   }

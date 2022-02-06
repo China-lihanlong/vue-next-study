@@ -1,35 +1,58 @@
 <div id="app"></div>
 <script src="../dist/vue.global.js"></script>
 <script>
-  const { createApp, h } = Vue
-
+  const { createApp, h, ref, defineCustomElement, customElement } = Vue
   const Comp = {
     template: `
-      <slot></slot>
+      <slot :slot="'slot'">sdasdsd</slot>
     `,
+
+    setup() {
+      const data = ref('我是Comp传递过来的内容')
+
+      return {
+        data
+      }
+    }
   }
+
+  const CustomElement = defineCustomElement({
+    // 这里是普通的 Vue 组件选项
+    props: {},
+    emits: {},
+    template: ``,
+    styles: [],
+    ceReload: () => {
+      console.log('10')
+    }
+  })
+
+  customElements.define('custom-element', CustomElement)
+
 
   const App = {
 
     template: `
       <Comp>
-        <template v-slot:default>
-          <div>我是分发default内容</div>  
-        </template>
-        <template v-slot:header>
-          <div>我是分发header内容</div>  
-        </template>
-        <template v-slot:container>
-          <div>我是container内容</div>  
-        </template>
-        <template v-slot:footer>
-          <div>我是footer内容</div>  
-        </template>
+        <custom-element></custom-element>
       </Comp>
     `,
 
+    setup() {
+      const counter = ref(0)
+
+      function increment() {
+        counter.value++
+      }
+
+      return {
+        counter,
+        increment
+      }
+    },
+
     components: {
-      Comp
+      Comp,
     },
 
     /* render() {
@@ -51,5 +74,7 @@
     } */
   }
 
-  const app = createApp(App).mount('#app')
+  const app = createApp(App)
+  app.config.isCustomElement = tag => tag.startsWith('custom-')
+  app.mount('#app')
 </script>
