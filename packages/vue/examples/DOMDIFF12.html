@@ -1,10 +1,21 @@
 <div id="app"></div>
+<template id="person-template">
+  <div>
+    <h2>Personal ID Card</h2>
+    <slot name="person-name">NAME MISSING</slot>
+    <ul>
+      <li>
+        <slot name="default">AGE MISSING</slot>
+      </li>
+    </ul>
+  </div>
+</template>
 <script src="../dist/vue.global.js"></script>
 <script>
   const { createApp, h, ref, defineCustomElement, customElement } = Vue
   const Comp = {
     template: `
-      <slot :slot="'slot'">sdasdsd</slot>
+    <slot></slot>
     `,
 
     setup() {
@@ -27,6 +38,30 @@
     }
   })
 
+  customElements.define(
+    "person-details",
+    class extends HTMLElement {
+      constructor() {
+        super();
+        let template = document.getElementById("person-template");
+        let templateContent = template.content;
+
+        const shadowRoot = this.attachShadow({ mode: "open" });
+
+        let style = document.createElement("style");
+        style.textContent =
+          "div { padding: 10px; border: 1px solid gray; width: 200px; margin: 10px; }" +
+          "h2 { margin: 0 0 10px; }" +
+          "ul { margin: 0; }" +
+          "p { margin: 10px 0; }" +
+          "::slotted(*) { color: gray; font-family: sans-serif; } ";
+
+        shadowRoot.appendChild(style);
+        shadowRoot.appendChild(templateContent.cloneNode(true));
+      }
+    }
+  );
+
   customElements.define('custom-element', CustomElement)
 
 
@@ -34,7 +69,10 @@
 
     template: `
       <Comp>
-        <custom-element></custom-element>
+        <person-details>
+          <p slot="person-name">Dr. Shazaam</p>
+          <span slot="default">Immortal</span>
+        </person-details>  
       </Comp>
     `,
 
@@ -75,6 +113,6 @@
   }
 
   const app = createApp(App)
-  app.config.isCustomElement = tag => tag.startsWith('custom-')
+  app.config.isCustomElement = tag => tag.startsWith('person-')
   app.mount('#app')
 </script>

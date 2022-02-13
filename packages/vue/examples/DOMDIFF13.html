@@ -1,0 +1,208 @@
+<div id="app"></div>
+
+<script src="../dist/vue.global.js"></script>
+
+<script>
+  const {
+    createApp,
+    defineComponent,
+    ref,
+    reactive,
+    h,
+    Fragment,
+    renderSlot,
+    createTextVNode,
+    withCtx,
+    openBlock,
+    createBlock,
+    createVNode,
+  } = Vue
+
+  ~(() => {
+    const state = ref(0)
+    setTimeout(() => {
+      state.value = state.value === 0 ? 1 : 0
+    }, 3000)
+    /* function changeState() {
+      state.value = state.value === 0 ? 1 : 0
+    } */
+
+    const CompA = {
+      setup(props, { slots }) {
+        return () => {
+          return (
+            openBlock(),
+            createBlock('div', null, [renderSlot(slots, 'default')])
+          )
+        }
+      }
+    }
+
+    const Wrapper = {
+      setup(props, { slots }) {
+        // use the manually written render function to rendering the optimized slots,
+        // which should make subsequent updates exit the optimized mode correctly
+        return () => {
+          return slots.default()[state.value]
+        }
+      }
+    }
+
+    const app = createApp({
+      setup() {
+        return () => {
+          return (
+            openBlock(),
+            createBlock(Wrapper, null, {
+              default: withCtx(() => [
+                createVNode(CompA, null, {
+                  default: withCtx(() => [createTextVNode('Hello')]),
+                  _: 1 /* STABLE */
+                }),
+                createVNode(CompA, null, {
+                  default: withCtx(() => [createTextVNode('World')]),
+                  _: 1 /* STABLE */
+                })
+              ]),
+              _: 1 /* STABLE */
+            })
+          )
+        }
+      }
+    })
+  })();
+
+  /* const Comp = defineComponent({
+    template: `
+      <div>
+        <slot name="default">我是default的备用内容</slot>
+        <slot name="footer">我是footer的备用内容</slot>  
+      </div>
+    `,
+
+    setup(props, { slots }) {
+
+      const _hoisted_1 = createTextVNode('我是header的备用内容')
+      const _hoisted_2 = createTextVNode('我是footer的备用内容')
+      const _hoisted_3 = createTextVNode('我是default的备用内容')
+
+      return () => {
+        return h(Fragment, null, [
+          renderSlot(slots, 'header', {}, () => [
+            _hoisted_1
+          ]),
+          renderSlot(slots, 'footer', {}, () => [
+            _hoisted_2
+          ]),
+          renderSlot(slots, 'default', {}, () => [
+            _hoisted_3
+          ])
+        ])
+      }
+
+      const flag = ref(true)
+
+      function changeFlag() {
+        flag.value = flag.value === true ? false : true
+      }
+
+      return () => {
+
+        const children = slots.default()
+        const child = children[Number(flag.value)]
+
+        const vnode = h(Fragment, null, [
+          h('div', { n: flag.value }, child),
+          h('button', { onClick: changeFlag }, ['changeFlag'])
+        ])
+        // console.log(vnode)
+        return vnode
+      }
+
+
+    }
+  }) */
+
+  /* const B = defineComponent({
+    setup(props, { slots }) {
+      const state = reactive({
+        index: 0
+      })
+
+      setTimeout(() => {
+        state.index = state.index === 0 ? 1 : 0
+        console.log(1)
+      }, 5000)
+
+      return () => {
+        debugger
+        const children = slots.default()
+
+        const child = children[state.index]
+        return child
+      }
+    }
+  }) */
+
+  /*  const A = defineComponent({
+     template: `
+       <div>
+         <slot></slot>  
+       </div>
+     `
+   }) */
+
+
+  /* const App = {
+    template: `
+      <Comp>
+        <template v-slot:default="slotProps">
+          <div>default</div>
+          <div>header</div>
+          {{slotProps}}  
+        </template>
+      </Comp>
+    `,
+
+    template: `
+      <B>
+        <div v-if="slotName === 'default'">我是传递过来的{{slotName}}传递的内容</div>  
+      <button @click="changeSlotName">changeSlotName</button>
+        <A key="A">Hello</A>  
+        <A key="B">World</A>  
+      </B>
+    `,
+
+    setup() {
+      const slotName = ref('header')
+      function changeSlotName() {
+        slotName.value = slotName.value === 'header' ? 'default' : 'header'
+      }
+      return {
+        slotName,
+        changeSlotName
+      }
+
+      return () => {
+        const vnode = h(Fragment, null, [
+          h(Comp, null, {
+            [slotName.value]: () => h('div', null, `我是${slotName.value}传递的内容`)
+          }),
+          h('button', { onClick: changeSlotName }, 'changeSlotName')
+        ])
+
+        console.log(vnode)
+        return vnode
+      }
+    },
+
+    components: {
+      Comp,
+      B,
+      A
+    }
+  } */
+
+  // const app = createApp(App)
+  app.mount('#app')
+</script>

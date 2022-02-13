@@ -3,12 +3,18 @@ export const enum SlotFlags {
    * Stable slots that only reference slot props or context state. The slot
    * can fully capture its own dependencies so when passed down the parent won't
    * need to force the child to update.
+   * <Comp>
+   *  <div></div>
+   * </Comp>
    */
   STABLE = 1,
   /**
    * Slots that reference scope variables (v-for or an outer slot prop), or
    * has conditional structure (v-if, v-for). The parent will need to force
    * the child to update because the slot does not fully capture its dependencies.
+   * <Comp>
+   *  <template v-if="counter===1" v-slot:default="slotProps"></template>
+   * </Comp>
    */
   DYNAMIC = 2,
   /**
@@ -16,6 +22,9 @@ export const enum SlotFlags {
    * to update the child is dependent on what kind of slots the parent itself
    * received. This has to be refined at runtime, when the child's vnode
    * is being created (in `normalizeChildren`)
+   * <Comp>
+   *  <slot></slot>
+   * </Comp>
    */
   FORWARDED = 3
 }
