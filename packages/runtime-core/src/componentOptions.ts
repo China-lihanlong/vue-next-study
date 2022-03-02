@@ -545,10 +545,12 @@ export function applyOptions(instance: ComponentInternalInstance) {
   const ctx = instance.ctx
 
   // do not cache property access on public proxy during state initialization
+  // 初始化期间不要缓存访问公共代理上的属性访问
   shouldCacheAccess = false
 
   // call beforeCreate first before accessing other options since
   // the hook may mutate resolved options (#2791)
+  // 在访问其他选项之前调用beforeCreate钩子函数函数 因为钩子函数内部可能改变选项中的内容
   if (options.beforeCreate) {
     callHook(options.beforeCreate, instance, LifecycleHooks.BEFORE_CREATE)
   }
@@ -579,7 +581,7 @@ export function applyOptions(instance: ComponentInternalInstance) {
     errorCaptured,
     serverPrefetch,
     // public API 公共API选处理
-    expose,
+    expose, // 限制 $parent $refs $root 之类的公共实例可以访问的prototype
     inheritAttrs,
     // assets 资产选项处理
     components,
@@ -587,6 +589,7 @@ export function applyOptions(instance: ComponentInternalInstance) {
     filters
   } = options
 
+  // dev 模式下确认选项中有没有重复的配置
   const checkDuplicateProperties = __DEV__ ? createDuplicateChecker() : null
 
   if (__DEV__) {
@@ -685,6 +688,7 @@ export function applyOptions(instance: ComponentInternalInstance) {
   }
 
   // state initialization complete at this point - start caching access
+  // 此时初始化状态完成 开始缓存访问
   shouldCacheAccess = true
 
   if (computedOptions) {
@@ -783,7 +787,7 @@ export function applyOptions(instance: ComponentInternalInstance) {
     }
   }
 
-  // 约束暴露的东西
+  // 合并约束暴露的东西 vue3.2 新增的expose函数 约束的项将和vue2options api的合并
   if (isArray(expose)) {
     if (expose.length) {
       const exposed = instance.exposed || (instance.exposed = {})
@@ -819,34 +823,43 @@ export function applyOptions(instance: ComponentInternalInstance) {
   }
 }
 
+// 处理inject选项
 export function resolveInjections(
   injectOptions: ComponentInjectOptions,
   ctx: any,
   checkDuplicateProperties = NOOP as any,
   unwrapRef = false
 ) {
+  // inject选项可以是数组或者是对象 但是这里需要的是对象 需要规范化成数组
   if (isArray(injectOptions)) {
     injectOptions = normalizeInject(injectOptions)!
   }
   for (const key in injectOptions) {
+    // 每一个inject
     const opt = (injectOptions as ObjectInjectOptions)[key]
     let injected: unknown
+    // 找出对应inject 的值
     if (isObject(opt)) {
       if ('default' in opt) {
+        // inject 默认值的处理方式
         injected = inject(
           opt.from || key,
           opt.default,
           true /* treat default function as factory */
         )
-      } else {
+      } else { 
         injected = inject(opt.from || key)
       }
     } else {
+      // inject 不是对象
       injected = inject(opt)
     }
+    // 值是ref形式
     if (isRef(injected)) {
       // TODO remove the check in 3.3
+      // unwrapRef 是一个临时的配置，当inject值是ref类型时，是否要展开，是false时，不展开但是会提示用户配置成true
       if (unwrapRef) {
+        // 展开ref 定义到ctx中
         Object.defineProperty(ctx, key, {
           enumerable: true,
           configurable: true,

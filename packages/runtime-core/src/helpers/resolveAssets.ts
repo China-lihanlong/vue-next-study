@@ -19,6 +19,7 @@ export type AssetTypes = typeof COMPONENTS | typeof DIRECTIVES | typeof FILTERS
 /**
  * @private
  */
+// 处理组件
 export function resolveComponent(
   name: string,
   maybeSelfReference?: boolean
@@ -31,6 +32,7 @@ export const NULL_DYNAMIC_COMPONENT = Symbol()
 /**
  * @private
  */
+// 处理动态组件
 export function resolveDynamicComponent(component: unknown): VNodeTypes {
   if (isString(component)) {
     return resolveAsset(COMPONENTS, component, false) || component
@@ -43,6 +45,7 @@ export function resolveDynamicComponent(component: unknown): VNodeTypes {
 /**
  * @private
  */
+// 处理指令
 export function resolveDirective(name: string): Directive | undefined {
   return resolveAsset(DIRECTIVES, name)
 }
@@ -51,6 +54,7 @@ export function resolveDirective(name: string): Directive | undefined {
  * v2 compat only
  * @internal
  */
+// 处理兼容v2的过滤器
 export function resolveFilter(name: string): Function | undefined {
   return resolveAsset(FILTERS, name)
 }
@@ -86,7 +90,7 @@ function resolveAsset(
     const Component = instance.type
 
     // explicit self name has highest priority
-    // 设置了名字的组件拥有最高优先级
+    // 设置了名字选项(name)的组件拥有最高优先级
     if (type === COMPONENTS) {
       const selfName = getComponentName(Component)
       if (
@@ -106,14 +110,17 @@ function resolveAsset(
       // check instance[type] first which is resolved for options API
       // 首先检查为选项API解析的实例[type]
       resolve(instance[type] || (Component as ComponentOptions)[type], name) ||
+      // 全局注册
       // global registration
       resolve(instance.appContext[type], name)
 
     if (!res && maybeSelfReference) {
+      // 也许是自我参照 返回传递自己的配置
       // fallback to implicit self-reference
       return Component
     }
 
+    // 如果没有找到资产 且不是自我参照 报警告
     if (__DEV__ && warnMissing && !res) {
       const extra =
         type === COMPONENTS

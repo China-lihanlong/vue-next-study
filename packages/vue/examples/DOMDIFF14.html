@@ -1,0 +1,89 @@
+<div id="app"></div>
+<script src="../dist/vue.global.js"></script>
+<script>
+  const { createApp, ref, defineComponent, reactive, h } = Vue
+
+  const Comp = defineComponent({
+    template: `
+    <div>我是Comp组件</div>  
+    `,
+
+    inject: ['foo'],
+
+    data() {
+      console.log(this.$parent)
+
+      return {
+
+      }
+    }
+  })
+
+  const App = defineComponent({
+    template: `
+    <div>我是App组件</div>
+    <div v-for="(item, index) in arr">{{index}}{{item}}</div>
+    <button @click="changeArr">changeArr</button>
+    <Comp></Comp>
+    `,
+
+    /* expose: [
+      'decrement'
+    ], */
+
+    provider: {
+      foo: 'bar'
+    },
+
+    setup(_, context) {
+      // console.log(context)
+
+      const arr = reactive([1, 2, 3, 4])
+      console.log(arr)
+      function changeArr () {
+        arr[4] = 5
+      }
+      function increment() {
+        console.log('increment')
+      }
+
+      /* context.expose([
+        increment
+      ]) */
+
+      return {
+        increment,
+        arr,
+        changeArr
+      }
+
+      /* return () => {
+        return h('div', null, '我是渲染函数')
+      } */
+    },
+
+    methods: {
+      decrement() {
+        console.log('decrement')
+      }
+    },
+
+    computed: {
+      a: {
+        get() {
+          return this.arr.length
+        },
+        set(v) {
+          this.arr.length = v
+        }
+      }
+    },
+
+    components: {
+      Comp
+    }
+  })
+
+  const app = createApp(App)
+  app.mount('#app')
+</script>

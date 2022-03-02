@@ -45,11 +45,13 @@ export function inject(
 ) {
   // fallback to `currentRenderingInstance` so that this can be called in
   // a functional component
+  // 如果没有拿到currentInstance 则回退到currentRenderingInstance 方便函数式组件调用
   const instance = currentInstance || currentRenderingInstance
   if (instance) {
     // #2400
     // to support `app.use` plugins,
     // fallback to appContext's `provides` if the intance is at root
+    // 可能是app.use 自我注入， 如果instance.parent不存在 代表是根组件 则去应用上下位中找
     const provides =
       instance.parent == null
         ? instance.vnode.appContext && instance.vnode.appContext.provides

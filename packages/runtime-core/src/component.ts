@@ -642,7 +642,7 @@ function setupStatefulComponent(
 
     setCurrentInstance(instance)
     pauseTracking()
-    // 存在并执行setup 并往里面传递一些参数 传递的是 props 和 ctx
+    // 存在并执行setup 并往里面传递一些参数 传递的是 props 和 setupCtx
     const setupResult = callWithErrorHandling(
       setup,
       instance,
@@ -658,6 +658,7 @@ function setupStatefulComponent(
 
       // 服务器渲染的Suspense 在这里进行处理
       if (isSSR) {
+        // 服务端渲染 返回Promise 便于服务端渲染器等待它
         // return the promise so server-renderer can wait on it
         return setupResult
           .then((resolvedResult: unknown) => {
@@ -866,6 +867,7 @@ export function finishComponentSetup(
   }
 }
 
+// 创建Attr响应式
 function createAttrsProxy(instance: ComponentInternalInstance): Data {
   return new Proxy(
     instance.attrs,
@@ -894,9 +896,11 @@ function createAttrsProxy(instance: ComponentInternalInstance): Data {
   )
 }
 
+// 创建setup的上下文
 export function createSetupContext(
   instance: ComponentInternalInstance
 ): SetupContext {
+  // vue3.2 新增的限制$parent 之类的公共实例可以访问的prototype 在setup中只能执行一次
   const expose: SetupContext['expose'] = exposed => {
     if (__DEV__ && instance.exposed) {
       warn(`expose() should be called only once per setup().`)
@@ -953,6 +957,7 @@ const classifyRE = /(?:^|[-_])(\w)/g
 const classify = (str: string): string =>
   str.replace(classifyRE, c => c.toUpperCase()).replace(/[-_]/g, '')
 
+// 获取组件名字
 export function getComponentName(
   Component: ConcreteComponent
 ): string | undefined {
