@@ -331,11 +331,14 @@ export function shouldUpdateComponent(
   // Parent component's render function was hot-updated. Since this may have
   // caused the child component's slots content to have changed, we need to
   // force the child to update as well.
+  // 父组件的渲染函数已经开启热更新，由于这可能导致子组件的插槽内容发生了更改
+  // 因此我们也需要强制子组件进行更新
   if (__DEV__ && (prevChildren || nextChildren) && isHmrUpdating) {
     return true
   }
 
   // force child update for runtime directive or transition on component vnode.
+  // 强制为VNode带有运行时指令或者被transition组件包裹的组件进行更新
   if (nextVNode.dirs || nextVNode.transition) {
     return true
   }
@@ -343,16 +346,20 @@ export function shouldUpdateComponent(
   if (optimized && patchFlag >= 0) {
     if (patchFlag & PatchFlags.DYNAMIC_SLOTS) {
       // slot content that references values that might have changed,
+      // 为引用可能已改变内容的值的插槽进行更新
       // e.g. in a v-for
       return true
     }
     if (patchFlag & PatchFlags.FULL_PROPS) {
+      // 当patchFlag是FULL_PROPS且prevProps不存在nextProps存在进行更新
       if (!prevProps) {
         return !!nextProps
       }
       // presence of this flag indicates props are always non-null
+      // 标志着props始终为非空 props有改变时更新
       return hasPropsChanged(prevProps, nextProps!, emits)
     } else if (patchFlag & PatchFlags.PROPS) {
+      // patchFlag是PROPS 进行动态的props对比 有改变并且不是emit监听进行更新
       const dynamicProps = nextVNode.dynamicProps!
       for (let i = 0; i < dynamicProps.length; i++) {
         const key = dynamicProps[i]
@@ -367,6 +374,7 @@ export function shouldUpdateComponent(
   } else {
     // this path is only taken by manually written render functions
     // so presence of any children leads to a forced update
+    // 这里仅为手动编写的渲染函数使用 因此任何子级的存在都有可能导致强制更新
     if (prevChildren || nextChildren) {
       if (!nextChildren || !(nextChildren as any).$stable) {
         return true
@@ -375,15 +383,19 @@ export function shouldUpdateComponent(
     if (prevProps === nextProps) {
       return false
     }
+    // prevProps 不存在 nextProps存在进行更新
     if (!prevProps) {
       return !!nextProps
     }
+    // prevProps无关紧要 nextProps不存在进行更新
     if (!nextProps) {
       return true
     }
+    // props发生改变进行更新
     return hasPropsChanged(prevProps, nextProps, emits)
   }
 
+  // 啥条件都不符合 不进行更新
   return false
 }
 

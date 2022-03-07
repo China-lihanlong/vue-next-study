@@ -893,7 +893,7 @@ function baseCreateRenderer(
     let { patchFlag, dynamicChildren, dirs } = n2
     // #1426 take the old vnode's patch flag into account since user may clone a
     // compiler-generated vnode, which de-opts to FULL_PROPS
-    // 考虑前一个节点和新节点，因为其中一个节点可能已被 cloneVNode 或类似的替换。选择全部特性更新
+    // 考虑前一个节点和新节点，因为用户可以克隆编译器产生的VNode。它将选择全部特性更新
     patchFlag |= n1.patchFlag & PatchFlags.FULL_PROPS
     const oldProps = n1.props || EMPTY_OBJ
     const newProps = n2.props || EMPTY_OBJ
@@ -919,7 +919,6 @@ function baseCreateRenderer(
     const areChildrenSVG = isSVG && n2.type !== 'foreignObject'
     // 更新动态子节点 如果回退到非优化模式则是全量更新 遍历每一个子节点
     if (dynamicChildren) {
-      // 一个元素被称为一个块
       patchBlockChildren(
         n1.dynamicChildren!,
         dynamicChildren,
@@ -1076,7 +1075,7 @@ function baseCreateRenderer(
           // 情况二：两个不是同一种元素(key值不一样)或者是组件已经热更新就强制更新 
           !isSameVNodeType(oldVNode, newVNode) ||
           // - In the case of a component, it could contain anything.
-          // 如果是组件或者UI组件树 拿到el的parentNode，但是在没有实际使用父容器的情况可以传递一个block元素，避免parentNode的调用
+          // 就组件而言，它可以包含任何东西
           oldVNode.shapeFlag & (ShapeFlags.COMPONENT | ShapeFlags.TELEPORT))
           ? hostParentNode(oldVNode.el)!
           : // In other cases, the parent container is not actually used so we
@@ -1406,6 +1405,7 @@ function baseCreateRenderer(
       ) {
         // async & still pending - just update props and slots
         // since the component's reactive effect for render isn't set-up yet
+        // 是异步以及等待阶段只更新props和slots，因为组件渲染的setup还未执行
         if (__DEV__) {
           pushWarningContext(n2)
         }
@@ -1416,15 +1416,19 @@ function baseCreateRenderer(
         return
       } else {
         // normal update
+        // 正常更新
         instance.next = n2
         // in case the child component is also queued, remove it to avoid
         // double updating the same child component in the same flush.
+        // 如果子组件也在更新队列中，请将它移除，避免重复更新同一个子组件
         invalidateJob(instance.update)
         // instance.update is the reactive effect.
+        // instance.update 是一个ReactiveEffect
         instance.update()
       }
     } else {
       // no update needed. just copy over properties
+      // 不需要更新，只需要复制属性即可
       n2.component = n1.component
       n2.el = n1.el
       instance.vnode = n2
@@ -1899,15 +1903,19 @@ function baseCreateRenderer(
           )
         } else {
           // no new children, just unmount old
+          // 没有新children 只是卸载旧children
           unmountChildren(c1 as VNode[], parentComponent, parentSuspense, true)
         }
       } else {
         // prev children was text OR null
         // new children is array OR null
+        // 旧children是TEXT_CHILDREN或者null
+        // 新children是TEXT_CHILDREN或者null
         if (prevShapeFlag & ShapeFlags.TEXT_CHILDREN) {
           hostSetElementText(container, '')
         }
         // mount new if array
+        // 新children是ARRAY_CHILDREN
         if (shapeFlag & ShapeFlags.ARRAY_CHILDREN) {
           mountChildren(
             c2 as VNodeArrayChildren,

@@ -1,0 +1,125 @@
+<div id="app"></div>
+<script src="../dist/vue.global.js"></script>
+
+<script>
+
+  const {createApp, ref, h, Fragment, cloneVNode, reactive, defineComponent} = Vue;
+  /* ~(() => {
+     const App = {
+       template: `
+       <div v-for="(index, item) in list" :key="item">
+         <div>{{index}}:{{item}}</div>
+       </div>
+        <button @click="changeList">changeList</button>
+      `,
+
+       setup () {
+         const data = ref(false)
+
+         const list = ref([0, 1, 2, 3, 4, 5, 6])
+
+         function changeData () {
+           data.value = !data.value
+         }
+
+         function changeList () {
+           list.value.push(7)
+         }
+
+         return {
+           data,
+           changeData,
+           list,
+           changeList
+         }
+       }
+     }
+   })
+ */
+
+  /*~(() => {
+    const Comp = {
+
+      template: `<div></div>`,
+
+      setup (_, context) {
+        console.log(context)
+      }
+    }
+
+    const App = {
+      template: `
+      <div v-for="(item, index) in data" :key="item">{{index}}:{{item}}</div>
+      <button @click="changeData">changeData</button>
+      <Comp></Comp>
+    `,
+
+      setup () {
+        const data = reactive([0, 1, 2, 3, 4, 5])
+
+        // console.log(arguments)
+        function changeData () {
+          data[1] = 2
+          data[2] = 1
+          data[3] = 5
+          data[4] = 3
+          data[5] = 4
+        }
+
+        return {
+          data,
+          changeData
+        }
+      },
+
+      components: {
+        Comp
+      }
+    }
+  })*/
+
+
+  const Comp = defineComponent({
+    template: `
+      <div>{{counter}}</div>
+    `,
+
+    props: {
+      counter: {
+        type: Number,
+        default: 0
+      }
+    },
+
+    setup(_, context) {
+
+    }
+  })
+
+  const App = defineComponent({
+    template: `
+    <Comp :counter="counter"></Comp>
+    <button @click="addCounter">addCounter</button>
+    `,
+
+    setup() {
+      const counter = ref(0);
+
+      function addCounter() {
+        counter.value++
+      }
+
+      return {
+        counter,
+        addCounter
+      }
+    },
+
+    components: {
+      Comp
+    }
+  })
+
+  const app = createApp(App)
+  app.mount('#app')
+</script>
