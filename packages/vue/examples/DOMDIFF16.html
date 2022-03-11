@@ -1,0 +1,281 @@
+<div id="app"></div>
+<script src="../dist/vue.global.js"></script>
+
+<script>
+  const { createApp, ref, reactive, defineComponent, h, renderList, Fragment, resolveComponent, onMounted } = Vue
+  // const {shuffle} = window._
+  /*const ListComp = defineComponent({
+    template: `
+<li>{{num}}</li>
+    `,
+    props: {
+      num: {
+        type: Number,
+        default: 0
+      }
+    }
+  })
+
+  const App = defineComponent({
+    template: `
+<template v-for="(item, index) in list" :key="index">
+  <p>{{index}}</p>
+  <p>{{item}}</p>
+</template>
+    `,
+
+    setup() {
+      let list = reactive([0, 1, 2, 3, 4])
+
+      function changeList() {
+        list = list.reverse()
+      }
+
+      /!*onMounted(() => {
+        setTimeout(() => {
+          changeList()
+        }, 5000)
+      })*!/
+
+      return {
+        list,
+        changeList
+      }
+
+      /!* return () => {
+         const _listComp_component = resolveComponent('ListComp');
+
+         const vnode = renderList(list, (item, index) => {
+           return h(_listComp_component, {
+             key: index,
+             num: item
+           })
+         })
+
+         console.log(vnode)
+
+         return h(Fragment, {}, [
+           h('ul', {}, vnode),
+           h('button', {
+             onClick: changeList
+           }, 'changeList')
+         ])
+       }*!/
+    },
+
+    components: {
+      ListComp
+    }
+  })*/
+
+  /*const App = defineComponent({
+    template: `
+    <div>
+  <button @click="isShowing = !isShowing">
+    Toggle - (Click this first, then click again after clicking 'Update')
+  </button>
+  <div v-if="isShowing">
+    <button @click="result = !result">Update - (Click this, then click 'Toggle' to hide again. Repeat to duplicate content.)</button>
+    <br />
+    This is the return value of result, and needs to be used in the template
+    for the bug to occur: {{ result }}
+    <br />
+    <teleport to="body">
+      This text is teleported and will be duplicated.
+    </teleport>
+  </div>
+</div>
+    `,
+
+    setup() {
+      const result = ref()
+      const isShowing = ref()
+      return {
+        result,
+        isShowing
+      }
+    }
+  })*/
+
+  /*const Child = defineComponent({
+    template: `<div>{{item.name}}</div>`,
+
+    props: ['item']
+  })
+
+  const App = defineComponent({
+    template: `
+    <template v-for="item in items" :key="item.id">
+    <!-- comment -->
+    <child :item="item"/>
+  </template>
+  <button @click="shuffle">shuffle</button>
+    `,
+
+    components: {Child},
+    data() {
+      return {
+        items: [
+          {id: 1, name: "first"},
+          {id: 2, name: "second"},
+          {id: 3, name: "third"}
+        ]
+      };
+    },
+    methods: {
+      shuffle() {
+        this.items = shuffle(this.items);
+      }
+    }
+  })*/
+
+  /*const App = defineComponent({
+    template: `
+<button @click="changeList">changeList</button>
+<template v-for="item in list" :key="item">
+  <div>123</div>
+  <div>123</div>
+  <div>123</div>
+  <div>123</div>
+  <div>123</div>
+  <div>123</div>
+  <div>123</div>
+  <div>123</div>
+  <div>123</div>
+  <div>123</div>
+  <div>123</div>
+  <div>123</div>
+  <div>123</div>
+  <div>123</div>
+  <div>123</div>
+  <div>123</div>
+  <div>123</div>
+  <div>123</div>
+  <div>123</div>
+  <div>123</div>
+  <div>123</div>
+  <div>123</div>
+  <div>123</div>
+  <div>123</div>
+  <div>123</div>
+</template>
+    `,
+
+    setup() {
+      let list = reactive([1, 2, 3, 4, 5, 6])
+      function changeList(){
+        list = list.reverse()
+      }
+      return {
+        list,
+        changeList
+      }
+    }
+  })*/
+
+  const Comp = defineComponent({
+    template: `
+    <li>{{num}}</li>
+    `,
+    props: ['num'],
+    setup() {
+
+    }
+  })
+
+  const App = defineComponent({
+    template: `
+<ul>
+  <Comp v-for="(item, index) in list" :key="item" :num="item"></Comp>
+</ul>
+<button @click="changeList">changeList</button>
+    `,
+
+    setup() {
+      let list = reactive(['one', 'two', 'three', 'fonr', 'five', 'six'])
+
+      function changeList() {
+        list = list.reverse()
+      }
+
+      return {
+        list,
+        changeList
+      }
+    },
+    components: {
+      Comp
+    }
+  })
+
+  const app = createApp(App)
+  app.mount('#app')
+
+  function getSequence(arr) {
+  // 数组p的作用：和原数组一样的长度 每一项记录的是自己在result中的前一个位置的值 值是索引 对应的是原数组中的值
+  const p = arr.slice()
+  const result = [0]
+  let i, j, u, v, c
+  /**
+   * c 是中间值的索引
+   * i 是当前比较项的索引
+   * j 是当前项的前一个索引
+   * u 是数组的前半部分
+   * v 是数组的后半部分
+   */
+  const len = arr.length
+  for (i = 0; i < len; i++) {
+    /**
+     * 使用数组中的每一项和结果中索引的最后一个(当成最大的)对应的值(我把它叫做：lastValue)对比
+     * 如果当前项大于lastValue 就可以将当前项的索引存储在结果中
+     * 当前处理完成 就可以跳出当前循环 进行下一项的处理
+     */
+
+    // 当前对比项
+    const arrI = arr[i]
+    if (arrI !== 0) {
+      j = result[result.length - 1]
+      if (arr[j] < arrI) {
+        // 和当前对比项对比 大于 添加映射 并将索引加入的result中 跳过当前循环
+        p[i] = j
+        // 将值的索引添加到结果中 在这个值符合条件的情况
+        result.push(i)
+        continue
+      }
+      u = 0
+      v = result.length - 1
+      // 二分算法查找result中的区间 找到递增子序列中里当前对比项尽量相差小值的索引
+      // 所对应的值是就是arr[result[u]] 这会出现三种情况，如果是小于和等于，不做任何操作
+      // 如果是大于 将result[u]的值改为当前索引 i  u不能是0 u等于0则意思是我是第一个 前面没有了
+      // u不等于0 就在 p数组中i的位置上记录我在result中的前一个的值
+      while (u < v) {
+        c = (u + v) >> 1
+        if (arr[result[c]] < arrI) {
+          u = c + 1
+        } else {
+          v = c
+        }
+      }
+      // arr[result[u]] 是通过前面二分算法
+      if (arrI < arr[result[u]]) {
+        // 当前对比项小于 arr[result[u]] 将result[u]的索引修改为当前对比项的索引
+        if (u > 0) {
+          // u等于0 说明我是最小的 前面没有比我更小的了
+          p[i] = result[u - 1]
+        }
+        result[u] = i
+      }
+    }
+  }
+  // 回溯数组 数组p中记录最长递增子序列的映射 根据映射找到正确的最长递增子序列索引
+  // 按照当前result长度
+  u = result.length
+  v = result[u - 1]
+  while (u-- > 0) {
+    result[u] = v
+    v = p[v]
+  }
+  return result
+}
+console.log(getSequence([7, 8, 3, 4, 5, 9, 9, 9, 9]))
+</script>

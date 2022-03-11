@@ -321,14 +321,14 @@ export function createHydrationRenderer(
 /**
  * createRenderer何createHydrationRenderer是两个创建renderer(渲染器)
  * 一个是Client Side Render 一个是Server Side Render
- * 
+ *
  * createRenderer 函数接受两个通用参数：HostNode 和 HostElement，
- * 分别对应宿主环境中的 Node 和 Element 类型。 
+ * 分别对应宿主环境中的 Node 和 Element 类型。
  * 例如，对于 runtime-dom，HostNode 将是 DOM `Node` 接口，HostElement 将是 DOM `Element` 接口。
- * 
+ *
  * 用于创建启用服务端的渲染器的单独 API。 Hydration 逻辑仅在调用此函数时使用，使其可摇树
- * 
- * 两个方法最终调用的是baseCreateRenderer 
+ *
+ * 两个方法最终调用的是baseCreateRenderer
  * baseCreateRenderer内部创建了很多方法 比较常见的有：patch render等 在vDom的挂载和更新经常使用的就是这些方法
  * baseCreateRenderer最后返回的是一个渲染器renderer 渲染器的结构如下：
  * {render,
@@ -423,21 +423,21 @@ function baseCreateRenderer(
     // 如果传递进来的是Suspense 就是Suspense的操作方法
     const { type, ref, shapeFlag } = n2
     switch (type) {
-      case Text: /* 文本 */
+      case Text /* 文本 */:
         processText(n1, n2, container, anchor)
         break
-      case Comment: /* 注释 */
+      case Comment /* 注释 */:
         processCommentNode(n1, n2, container, anchor)
         break
-      case Static: /* 静态节点：连续20个节点，且没任何动态的内容 */
+      case Static /* 静态节点：连续20个节点，且没任何动态的内容 */:
         if (n1 == null) {
           mountStaticNode(n2, container, anchor, isSVG)
         } else if (__DEV__) {
           patchStaticNode(n1, n2, container, isSVG)
         }
         break
-      case Fragment: /* Fragment 表示一系列没有根节点 并排排列的节点 */
-      // DOM diff 开始入口
+      case Fragment /* Fragment 表示一系列没有根节点 并排排列的节点 */:
+        // DOM diff 开始入口
         processFragment(
           n1,
           n2,
@@ -1068,11 +1068,11 @@ function baseCreateRenderer(
         oldVNode.el &&
         // - In the case of a Fragment, we need to provide the actual parent
         // of the Fragment itself so it can move its children.
-        // 情况一：文档碎片 
+        // 情况一：文档碎片
         (oldVNode.type === Fragment ||
           // - In the case of different nodes, there is going to be a replacement
           // which also requires the correct parent container
-          // 情况二：两个不是同一种元素(key值不一样)或者是组件已经热更新就强制更新 
+          // 情况二：两个不是同一种元素(key值不一样)或者是组件已经热更新就强制更新
           !isSameVNodeType(oldVNode, newVNode) ||
           // - In the case of a component, it could contain anything.
           // 就组件而言，它可以包含任何东西
@@ -1213,7 +1213,7 @@ function baseCreateRenderer(
         dynamicChildren &&
         // #2715 the previous fragment could've been a BAILed one as a result
         // of renderSlot() with no valid children
-        // 由于 renderSlot() 没有有效的孩子，前一个片段可能是一个不需要DOMdiff的片段
+        // 因为renderSlot()没有有效的子级 所以之前的片段跳过patchBlockChildren
         n1.dynamicChildren
       ) {
         // a stable fragment (template root or <template v-for>) doesn't need to
@@ -1233,8 +1233,7 @@ function baseCreateRenderer(
         } else if (
           // #2080 if the stable fragment has a key, it's a <template v-for> that may
           //  get moved around. Make sure all root level vnodes inherit el.
-          // 在键控的'template'片段静态子对象中，如果移动片段，子对象始终将移动。
-          // 因此，为了确保正确的移动位置，el应该从以前的节点继承
+          // 如果稳定片段有一个key，那么它就是一个可以移动的<template v-for> 确保所有的根级别VNode继承el
           // #2134 or if it's a component root, it may also get moved around
           // as the component is being moved.
           // 或者如果它是一个组件根，它也可能随着组件的移动而四处移动。
@@ -1248,8 +1247,8 @@ function baseCreateRenderer(
         // for keyed & unkeyed, since they are compiler generated from v-for,
         // each child is guaranteed to be a block so the fragment will never
         // have dynamicChildren.
-        // 键控和非键控或者是fragments
-        // 键控和非键控 其实也是由vFor编译之后所产生的片段 他们一定没有dynamicChildren
+        // 键控和非键控或者是手动fragments
+        // 对于键控和非键控 其实也是由vFor编译之后所产生的片段 所以他们每一子项都保证是一个块 他们一定没有dynamicChildren
         patchChildren(
           n1,
           n2,
@@ -1308,7 +1307,7 @@ function baseCreateRenderer(
     }
   }
 
-  // 
+  //
   const mountComponent: MountComponentFn = (
     initialVNode,
     container,
@@ -1330,9 +1329,9 @@ function baseCreateRenderer(
         parentComponent,
         parentSuspense
       ))
-      // instance 是当前的组件的根实例 里面有 不再是一些$xxx的方法 而是一些属性 其中：bc = beforeCreate bm = beforeMount 
-      // bu = beforeUpdate bum = beforeUnmount
-      // 最后重要的是其中的上下文 ctx(里面就是$xxx的方法)
+    // instance 是当前的组件的根实例 里面有 不再是一些$xxx的方法 而是一些属性 其中：bc = beforeCreate bm = beforeMount
+    // bu = beforeUpdate bum = beforeUnmount
+    // 最后重要的是其中的上下文 ctx(里面就是$xxx的方法)
 
     if (__DEV__ && instance.type.__hmrId) {
       registerHMR(instance)
@@ -1483,7 +1482,7 @@ function baseCreateRenderer(
         // 开始挂载组件 允许递归
         effect.allowRecurse = true
 
-        // 服务端渲染(Server Side Render) 
+        // 服务端渲染(Server Side Render)
         if (el && hydrateNode) {
           // vnode has adopted host node - perform hydration instead of mount.
           // 服务端渲染不是挂载 而是通过hydrateNode将数据渲染到结构中
@@ -1527,7 +1526,7 @@ function baseCreateRenderer(
             hydrateSubTree()
           }
         } else {
-        // 不是Server Side Render 是客户端渲染(Client Side Render)
+          // 不是Server Side Render 是客户端渲染(Client Side Render)
           if (__DEV__) {
             startMeasure(instance, `render`)
           }
@@ -1588,7 +1587,7 @@ function baseCreateRenderer(
         // activated hook for keep-alive roots.
         // #1742 activated hook must be accessed after first render
         // since the hook may be injected by a child keep-alive
-        // 如果这个组件时被keep-alive缓存过(vue2就会有一个activated函数) 
+        // 如果这个组件时被keep-alive缓存过(vue2就会有一个activated函数)
         // 组件实例上就有一个a作为 在缓存组件被激活时被调用
         // 且都是在渲染队列中 等待渲染完成在调用
         // 但是服务器渲染不会有此钩子函数
@@ -1616,7 +1615,7 @@ function baseCreateRenderer(
         // 在组件挂载完毕 清除一切 保证内存不会泄露
         initialVNode = container = anchor = null as any
       } else {
-        // updateComponent 组件更新 
+        // updateComponent 组件更新
         // This is triggered by mutation of component's own state (next: null)
         // OR parent calling processComponent (next: VNode)
         // 可能是内部数据发生了变化(next为null)，也可能是父组件发生变化引发子组件diff(next为VNode)
@@ -1670,7 +1669,7 @@ function baseCreateRenderer(
         if (__DEV__) {
           startMeasure(instance, `render`)
         }
-        
+
         // 重新调用render 产生最新的VNode
         const nextTree = renderComponentRoot(instance)
         if (__DEV__) {
@@ -1752,7 +1751,7 @@ function baseCreateRenderer(
      */
 
     // create reactive effect for rendering
-    // 创建渲染effect 可以建立一个依赖关系：传入effect的回调函数和响应式数据之间 
+    // 创建渲染effect 可以建立一个依赖关系：传入effect的回调函数和响应式数据之间
     // 等同于一个渲染Watcher
     // 创建更新规则
     const effect = new ReactiveEffect(
@@ -1787,7 +1786,7 @@ function baseCreateRenderer(
     update()
   }
 
-  // 更新组件实例中的VNode 以及props和slots 
+  // 更新组件实例中的VNode 以及props和slots
   const updateComponentPreRender = (
     instance: ComponentInternalInstance,
     nextVNode: VNode,
@@ -2023,9 +2022,9 @@ function baseCreateRenderer(
     // (a b) c
     // (a b) d e
     while (i <= e1 && i <= e2) {
-    // 同步对比开始位置：
-    // 找不同 更新节点 在相同节点类型的情况下 
-    // 跳过该节点 在节点类型不同的情况下
+      // 同步对比开始位置：
+      // 找不同 更新节点 在相同节点类型的情况下
+      // 跳过该节点 在节点类型不同的情况下
       const n1 = c1[i]
       // 在优化(已经挂载)的情况下克隆一份 不然直接标准化后对比
       const n2 = (c2[i] = optimized
@@ -2053,10 +2052,10 @@ function baseCreateRenderer(
     // a (b c)
     // d e (b c)
     while (i <= e1 && i <= e2) {
-    // 同步对比结束位置：
-    // 找不同 更新节点 在相同节点类型的情况下 
-    // 跳过该节点 在节点类型不同的情况下
-    // 减小新旧节点列表的对比数量，如果正常的patch完毕(对比完成 后续不在对比)
+      // 同步对比结束位置：
+      // 找不同 更新节点 在相同节点类型的情况下
+      // 跳过该节点 在节点类型不同的情况下
+      // 减小新旧节点列表的对比数量，如果正常的patch完毕(对比完成 后续不在对比)
       const n1 = c1[e1]
       const n2 = (c2[e2] = optimized
         ? cloneIfMounted(c2[e2] as VNode)
@@ -2290,7 +2289,7 @@ function baseCreateRenderer(
     moveType,
     parentSuspense = null
   ) => {
-    // 取出编译时产生的标记以及其他的一些东西 
+    // 取出编译时产生的标记以及其他的一些东西
     // 最重要的是 shapeFlag 和 el
     // shapeFlag 说明了当前节点包含说明：组件？文本？详细见shapeFlag.ts文件
     // el 是当前节点的真实元素
@@ -2337,7 +2336,7 @@ function baseCreateRenderer(
       transition
     if (needTransition) {
       // 判断是进入动画 还是退出动画
-      // transition 是内置组件transition实现的一些hook 
+      // transition 是内置组件transition实现的一些hook
       //  beforeEnter(即将进入) enter(进入) leave(离开) clone(主要作用：
       // 将vnode.transition上的hook函数克隆一份放到vnode上，在渲染器的某个时刻执行)
       // 还有其他的很多hook
@@ -2607,7 +2606,7 @@ function baseCreateRenderer(
     // A component with async dep inside a pending suspense is unmounted before
     // its async dep resolves. This should remove the dep from the suspense, and
     // cause the suspense to resolve immediately if that was the last dep.
-    // 在挂起的 suspense 中带有 async dep 的组件之前被卸载，如果那是最后一个dep。它的 async 
+    // 在挂起的 suspense 中带有 async dep 的组件之前被卸载，如果那是最后一个dep。它的 async
     // dep 解析。这应该从 suspense中执行dep，并让suspense立即删除，
     if (
       __FEATURE_SUSPENSE__ &&
@@ -2823,7 +2822,7 @@ export function invokeVNodeHook(
  * When a component is HMR-enabled, we need to make sure that all static nodes
  * inside a block also inherit the DOM element from the previous tree so that
  * HMR updates (which are full updates) can retrieve the element for patching.
- * 
+ *
  * 当组件启用HMR时，我们需要确保块内的所有静态节点也继承上一个树中的DOM元素，
  * 以便HMR更新（即完全更新）可以检索要修补的元素。
  *
@@ -2831,10 +2830,10 @@ export function invokeVNodeHook(
  * Inside keyed `template` fragment static children, if a fragment is moved,
  * the children will always be moved. Therefore, in order to ensure correct move
  * position, el should be inherited from previous nodes.
- * 
+ *
  * 在键控的'template'片段静态子对象中，如果移动片段，子对象始终将移动。
  * 因此，为了确保正确的移动位置，el应该从以前的节点继承。
- * 
+ *
  */
 // 递归寻找或者是定位旧的el 以便在更新节点进行引用 防止更新阶段会抛出 el is null
 export function traverseStaticChildren(n1: VNode, n2: VNode, shallow = false) {
