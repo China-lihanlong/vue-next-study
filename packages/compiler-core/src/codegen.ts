@@ -159,6 +159,7 @@ function createCodegenContext(
     }
   }
 
+  // 拼接函数时，用于产生新行
   function newline(n: number) {
     context.push('\n' + `  `.repeat(n))
   }
@@ -193,6 +194,7 @@ export function generate(
     onContextCreated?: (context: CodegenContext) => void
   } = {}
 ): CodegenResult {
+  // 创建生成上下文
   const context = createCodegenContext(ast, options)
   if (options.onContextCreated) options.onContextCreated(context)
   const {
@@ -206,7 +208,9 @@ export function generate(
     ssr
   } = context
 
+  // 在优化AST是找到的帮助函数
   const hasHelpers = ast.helpers.length > 0
+  // 是否使用with(...){} 默认是使用的
   const useWithBlock = !prefixIdentifiers && mode !== 'module'
   const genScopeId = !__BROWSER__ && scopeId != null && mode === 'module'
   const isSetupInlined = !__BROWSER__ && !!options.inline
@@ -225,12 +229,13 @@ export function generate(
   }
   // enter render function
   const functionName = ssr ? `ssrRender` : `render`
-  // 服务端渲染 会多两个属性
+  // 服务端渲染 会多两个属性 客户端渲染只会用到 _ctx和 _catche
   const args = ssr ? ['_ctx', '_push', '_parent', '_attrs'] : ['_ctx', '_cache']
   if (!__BROWSER__ && options.bindingMetadata && !options.inline) {
     // binding optimization args
     args.push('$props', '$setup', '$data', '$options')
   }
+  // 浏览器客户端渲染会将其拆分成数组 后传递给函数
   const signature =
     !__BROWSER__ && options.isTS
       ? args.map(arg => `${arg}: any`).join(',')
@@ -248,7 +253,7 @@ export function generate(
     indent()
     // function mode const declarations should be inside with block
     // also they should be renamed to avoid collision with user properties
-    // 重命名创建函数 防止重名
+    // 函数模式下常量应该声明在with块中，此外还应该重命名，避免和用户的变量冲突
     if (hasHelpers) {
       push(
         `const { ${ast.helpers
@@ -261,18 +266,22 @@ export function generate(
   }
 
   // generate asset resolution statements
+  // 确认资产列表 是以AST树中的为准 只有在模板中使用了才会算数
+  // 使用的组件
   if (ast.components.length) {
     genAssets(ast.components, 'component', context)
     if (ast.directives.length || ast.temps > 0) {
       newline()
     }
   }
+  // 使用的自定义指令
   if (ast.directives.length) {
     genAssets(ast.directives, 'directive', context)
     if (ast.temps > 0) {
       newline()
     }
   }
+  // 使用的v2的过滤器
   if (__COMPAT__ && ast.filters && ast.filters.length) {
     newline()
     genAssets(ast.filters, 'filter', context)
@@ -285,6 +294,7 @@ export function generate(
       push(`${i > 0 ? `, ` : ``}_temp${i}`)
     }
   }
+  // components directives temps 有任意一个都要隔一行
   if (ast.components.length || ast.directives.length || ast.temps) {
     push(`\n`)
     newline()
@@ -331,24 +341,32 @@ function genFunctionPreamble(ast: RootNode, context: CodegenContext) {
     !__BROWSER__ && ssr
       ? `require(${JSON.stringify(runtimeModuleName)})`
       : runtimeGlobalName
+  // 给助手函数产生别名
   const aliasHelper = (s: symbol) => `${helperNameMap[s]}: _${helperNameMap[s]}`
   // Generate const declaration for helpers
   // In prefix mode, we place the const declaration at top so it's done
   // only once; But if we not prefixing, we place the declaration inside the
   // with block so it doesn't incur the `in` check cost for every helper access.
+  // 在前缀模式下，会将助手函数以常量的形式声明在顶部，以便只执行一次，
+  // 如果不加前缀，会在with块中声明，就不会为每一个助手函数产生判断是否存在的开销
   if (ast.helpers.length > 0) {
     if (!__BROWSER__ && prefixIdentifiers) {
+      // 不是浏览器平台并且是前缀模式将所有的助手函数证明在顶部
       push(
         `const { ${ast.helpers.map(aliasHelper).join(', ')} } = ${VueBinding}\n`
       )
     } else {
       // "with" mode.
       // save Vue in a separate variable to avoid collision
+      // with 模式下 将Vue单独保存在一个变量中 避免冲突
       push(`const _Vue = ${VueBinding}\n`)
       // in "with" mode, helpers are declared inside the with block to avoid
       // has check cost, but hoists are lifted out of the function - we need
       // to provide the helper here.
+      // 在with模式下，助手函数在with块内声明避免检查是否存在，但是hoists被提升到函数外面，
+      // 我们需要在这里提供助手
       if (ast.hoists.length) {
+        // 将hoists中的所有东西变成 xxx:_xxx 格式
         const staticHelpers = [
           CREATE_VNODE,
           CREATE_ELEMENT_VNODE,
@@ -359,11 +377,13 @@ function genFunctionPreamble(ast: RootNode, context: CodegenContext) {
           .filter(helper => ast.helpers.includes(helper))
           .map(aliasHelper)
           .join(', ')
+        // 和前面的产生的xxx:_xxx 拼成 const {xxx:_xxx} = _Vue
         push(`const { ${staticHelpers} } = _Vue\n`)
       }
     }
   }
   // generate variables for ssr helpers
+  // 为服务器渲染提供助手函数
   if (!__BROWSER__ && ast.ssrHelpers && ast.ssrHelpers.length) {
     // ssr guarantees prefixIdentifier: true
     push(
@@ -496,11 +516,13 @@ function genHoists(hoists: (JSChildNode | null)[], context: CodegenContext) {
     const exp = hoists[i]
     if (exp) {
       const needScopeIdWrapper = genScopeId && exp.type === NodeTypes.VNODE_CALL
+      // 静态节点的头
       push(
         `const _hoisted_${i + 1} = ${
           needScopeIdWrapper ? `${PURE_ANNOTATION} _withScopeId(() => ` : ``
         }`
       )
+      // 静态节点的内容 例如 const _hoistsed_x = ['onClick'];
       genNode(exp, context)
       if (needScopeIdWrapper) {
         push(`)`)
@@ -577,14 +599,18 @@ function genNodeList(
 
 function genNode(node: CodegenNode | symbol | string, context: CodegenContext) {
   if (isString(node)) {
+    // 传递进来的节点是字符串，可以直接拼接到code
     context.push(node)
     return
   }
   if (isSymbol(node)) {
+    // 需要通过助手函数进行创建 比如静态节点使用createStaticVNode
     context.push(context.helper(node))
     return
   }
+  // 根据条件产生不同的结构内容
   switch (node.type) {
+    // ELEMENT、IF、FOR操作的东西属于节点类型，递归调用genNode
     case NodeTypes.ELEMENT:
     case NodeTypes.IF:
     case NodeTypes.FOR:
@@ -606,6 +632,7 @@ function genNode(node: CodegenNode | symbol | string, context: CodegenContext) {
       genInterpolation(node, context)
       break
     case NodeTypes.TEXT_CALL:
+      // 文本节点类型可以直接拼接
       genNode(node.codegenNode, context)
       break
     case NodeTypes.COMPOUND_EXPRESSION:
@@ -675,15 +702,18 @@ function genText(
   node: TextNode | SimpleExpressionNode,
   context: CodegenContext
 ) {
+  // 文本节点类型 通过JSON.stringify序列化之后拼接到code中
   context.push(JSON.stringify(node.content), node)
 }
 
 function genExpression(node: SimpleExpressionNode, context: CodegenContext) {
   const { content, isStatic } = node
+  // 表达式静态化后拼接 不然直接拼接
   context.push(isStatic ? JSON.stringify(content) : content, node)
 }
 
 function genInterpolation(node: InterpolationNode, context: CodegenContext) {
+  // 插值需要用toDisplayString包裹
   const { push, helper, pure } = context
   if (pure) push(PURE_ANNOTATION)
   push(`${helper(TO_DISPLAY_STRING)}(`)

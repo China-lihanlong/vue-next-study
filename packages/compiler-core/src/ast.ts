@@ -22,6 +22,7 @@ export const enum Namespaces {
   HTML
 }
 
+// 节点类型
 export const enum NodeTypes {
   ROOT,
   ELEMENT,
@@ -56,10 +57,15 @@ export const enum NodeTypes {
   JS_RETURN_STATEMENT
 }
 
+// 标签标记类型 
 export const enum ElementTypes {
+  // 元素
   ELEMENT,
+  // 组件
   COMPONENT,
+  // 插槽
   SLOT,
+  // 模板
   TEMPLATE
 }
 
@@ -199,6 +205,7 @@ export interface DirectiveNode extends Node {
  * Higher levels implies lower levels. e.g. a node that can be stringified
  * can always be hoisted and skipped for patch.
  */
+// 静态内容分等级 等级越高 就可以随时提升、跳过对比、字符串序列化
 export const enum ConstantTypes {
   NOT_CONSTANT = 0,
   CAN_SKIP_PATCH,
@@ -567,6 +574,7 @@ export function createRoot(
   }
 }
 
+// 创建VNODE_CALL
 export function createVNodeCall(
   context: TransformContext | null,
   tag: VNodeCall['tag'],
@@ -641,6 +649,7 @@ export function createObjectProperty(
   }
 }
 
+// 创建简单表达式节点
 export function createSimpleExpression(
   content: SimpleExpressionNode['content'],
   isStatic: SimpleExpressionNode['isStatic'] = false,

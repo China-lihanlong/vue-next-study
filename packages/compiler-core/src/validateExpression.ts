@@ -26,6 +26,8 @@ const stripStringRE =
  * This is only called when using the in-browser runtime compiler since it
  * doesn't prefix expressions.
  */
+// 校验无前缀表达式
+// 这只会在浏览器 runtime和compiler 调用 因为它们不会给表达式加前缀
 export function validateBrowserExpression(
   node: SimpleExpressionNode,
   context: TransformContext,
@@ -36,11 +38,13 @@ export function validateBrowserExpression(
 
   // empty expressions are validated per-directive since some directives
   // do allow empty expressions.
+  // 每个指令都会验证空表达式，因为有些指令确实允许使用空表达式
   if (!exp.trim()) {
     return
   }
 
   try {
+    // 通过asRawStatements判断是否要转换语句 asParams 判断是否要作为参数
     new Function(
       asRawStatements
         ? ` ${exp} `

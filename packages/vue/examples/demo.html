@@ -1,0 +1,22 @@
+<script src="../dist/vue.global.js"></script>
+<script>
+  const {ref, watchEffect} = Vue
+  const counter = ref(0)
+  const enabled = ref(false)
+
+  watchEffect(() => {
+    console.log(1)
+    if (enabled.value) console.log(counter.value)
+  })
+
+  // (以下忽略 nextTick)
+
+  // watchEffect 会被立即执行，因为 “enabled“ 为 false, 此时仅收集到 “enabled“ 依赖
+  counter.value += 1 // 无反应
+
+  enabled.value = true // Effect 触发，控制台出 "1"
+  counter.value += 1 // “counter“ 被作为新的依赖被收集，控制台出 "2"
+
+  enabled.value = false // 函数被重新执行，无输出
+  counter.value += 1 // 函数被重新执行，无输出 (虽然 counter 已经没有用了，但是作为依赖还是会触发函数）
+</script>

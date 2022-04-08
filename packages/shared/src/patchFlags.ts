@@ -70,7 +70,7 @@ export const enum PatchFlags {
   /**
    * Indicates a fragment whose children order doesn't change.
    */
-  // 静态的元素节点
+  // 稳定片段
   STABLE_FRAGMENT = 1 << 6,
 
   /**

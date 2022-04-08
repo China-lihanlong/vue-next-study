@@ -41,20 +41,24 @@ const isLiteralWhitelisted = /*#__PURE__*/ makeMap('true,false,null,this')
 
 export const transformExpression: NodeTransform = (node, context) => {
   if (node.type === NodeTypes.INTERPOLATION) {
+    // 插槽表达式
     node.content = processExpression(
       node.content as SimpleExpressionNode,
       context
     )
   } else if (node.type === NodeTypes.ELEMENT) {
     // handle directives on element
+    // 指令表达式
     for (let i = 0; i < node.props.length; i++) {
       const dir = node.props[i]
       // do not process for v-on & v-for since they are special handled
+      // 不要处理v-on和v-for，它们会经过特殊处理
       if (dir.type === NodeTypes.DIRECTIVE && dir.name !== 'for') {
         const exp = dir.exp
         const arg = dir.arg
         // do not process exp if this is v-on:arg - we need special handling
         // for wrapping inline statements.
+        // 如果这是v-on:arg 请不要处理exp我们需要进行特殊处理：包装内联语句
         if (
           exp &&
           exp.type === NodeTypes.SIMPLE_EXPRESSION &&
@@ -64,6 +68,7 @@ export const transformExpression: NodeTransform = (node, context) => {
             exp,
             context,
             // slot args must be processed as function params
+            // 插槽参数必须作为函数参数处理
             dir.name === 'slot'
           )
         }

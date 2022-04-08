@@ -146,8 +146,11 @@ function parseChildren(
   mode: TextModes,
   ancestors: ElementNode[]
 ): TemplateChildNode[] {
+  // 获取父标记
   const parent = last(ancestors)
+  // 父元素的命名空间，没有就默认HTML
   const ns = parent ? parent.ns : Namespaces.HTML
+  // 当前父标记的子标记数组
   const nodes: TemplateChildNode[] = []
 
   while (!isEnd(context, mode, ancestors)) {
@@ -293,16 +296,19 @@ function parseChildren(
             removedWhitespace = true
             nodes[i] = null as any
           } else {
+            // 空白压缩成一个空格
             // Otherwise, the whitespace is condensed into a single space
             node.content = ' '
           }
         } else if (shouldCondense) {
           // in condense mode, consecutive whitespaces in text are condensed
           // down to a single space.
+          // 在压缩模式，文中的连续空白被压缩成一个空格
           node.content = node.content.replace(/[\t\r\n\f ]+/g, ' ')
         }
       }
       // Remove comment nodes if desired by configuration.
+      // 如果配置需要，请移除注释
       else if (node.type === NodeTypes.COMMENT && !context.options.comments) {
         removedWhitespace = true
         nodes[i] = null as any
@@ -310,6 +316,7 @@ function parseChildren(
     }
     if (context.inPre && parent && context.options.isPreTag(parent.tag)) {
       // remove leading newline per html spec
+      // 根据html规范删除前导换行符
       // https://html.spec.whatwg.org/multipage/grouping-content.html#the-pre-element
       const first = nodes[0]
       if (first && first.type === NodeTypes.TEXT) {
@@ -433,13 +440,18 @@ function parseElement(
   __TEST__ && assert(/^<[a-z]/i.test(context.source))
 
   // Start tag.  处理开始标签
+  // 保存旧的inPre inPre的意思是标签是不是<pre>
   const wasInPre = context.inPre
+  // 保存旧的inVPre inVPre的意思是标签是不是带有v-pre指令
   const wasInVPre = context.inVPre
+  // 获取当前节点的父节点
   const parent = last(ancestors)
+  // 处理标签
   const element = parseTag(context, TagType.Start, parent)
   const isPreBoundary = context.inPre && !wasInPre
   const isVPreBoundary = context.inVPre && !wasInVPre
 
+  // 如果自闭合的<pre> 标记就 不需要继续往下处理 可以直接返回
   if (element.isSelfClosing || context.options.isVoidTag(element.tag)) {
     // #4030 self-closing <pre> tag
     if (isPreBoundary) {
@@ -533,6 +545,7 @@ function parseTag(
   type: TagType,
   parent: ElementNode | undefined
 ): ElementNode | undefined {
+  // 校验是不是标签和标签类型
   __TEST__ && assert(/^<\/?[a-z]/i.test(context.source))
   __TEST__ &&
     assert(
@@ -540,19 +553,25 @@ function parseTag(
     )
 
   // Tag open.
+  // 标签开头
+  // 保存标签开始位置
   const start = getCursor(context)
+  // 获取<xxx>中的xxx
   const match = /^<\/?([a-z][^\t\r\n\f />]*)/i.exec(context.source)!
   const tag = match[1]
+  // 获取元素命名空间
   const ns = context.options.getNamespace(tag, parent)
 
+  // 删除被匹配的内容和空格，并且修改匹配位置
   advanceBy(context, match[0].length)
   advanceSpaces(context)
 
   // save current state in case we need to re-parse attributes with v-pre
+  // 保存当前匹配位置和source 防止需要使用v-pre重新解析属性
   const cursor = getCursor(context)
   const currentSource = context.source
 
-  // check <pre> tag 验证为<pre>标签
+  // check <pre> tag 验证是否为<pre>标签
   if (context.options.isPreTag(tag)) {
     context.inPre = true
   }
@@ -560,12 +579,13 @@ function parseTag(
   // Attributes. 元素特性
   let props = parseAttributes(context, type)
 
-  // check v-pre
+  // check v-pre 校验标签是否带有v-pre指令
   if (
     type === TagType.Start &&
     !context.inVPre &&
     props.some(p => p.type === NodeTypes.DIRECTIVE && p.name === 'pre')
   ) {
+    // 存在v-pre指令 重置上下文 重新解析attrs并过滤掉v-pre本身
     context.inVPre = true
     // reset context
     extend(context, cursor)
@@ -575,11 +595,16 @@ function parseTag(
   }
 
   // Tag close.
+  // 标签的闭合
+  // 是否是自闭合 默认不是
   let isSelfClosing = false
+  // 到这里如果source长度是0 说明出现了意外的标记
   if (context.source.length === 0) {
     emitError(context, ErrorCodes.EOF_IN_TAG)
   } else {
+    // 到这里如果source以/>开头 说明是自闭合标签 isSelfClosing变为true
     isSelfClosing = startsWith(context.source, '/>')
+    // 如果是结束标签却又是自闭合标签 说出现了错误的结束标签
     if (type === TagType.End && isSelfClosing) {
       emitError(context, ErrorCodes.END_TAG_WITH_TRAILING_SOLIDUS)
     }
@@ -587,11 +612,13 @@ function parseTag(
     advanceBy(context, isSelfClosing ? 2 : 1)
   }
 
+  // 解析的是结束标记可以直接结束流程
   if (type === TagType.End) {
     return
   }
 
   // 2.x deprecation checks
+  // 2.x 指令解析 处理v-if和v-for的优先级
   if (
     __COMPAT__ &&
     __DEV__ &&
@@ -600,8 +627,10 @@ function parseTag(
       context
     )
   ) {
+    //声明两个保存状态
     let hasIf = false
     let hasFor = false
+    // 遍历获取到的props 找到里面的v-if或者是v-for 只要就会把对应的状态改为true
     for (let i = 0; i < props.length; i++) {
       const p = props[i]
       if (p.type === NodeTypes.DIRECTIVE) {
@@ -611,6 +640,9 @@ function parseTag(
           hasFor = true
         }
       }
+    // 如果v-if和v-for同时存在 
+    // 在3.x中 v-if优先更高，v-if的条件中无法访问v-for作用域中定义的变量别名
+    // 请使用<template>标记避免歧义 或者是用computed过滤source
       if (hasIf && hasFor) {
         warnDeprecation(
           CompilerDeprecationTypes.COMPILER_V_IF_V_FOR_PRECEDENCE,
@@ -622,6 +654,7 @@ function parseTag(
     }
   }
 
+  // 确认标记类型
   let tagType = ElementTypes.ELEMENT
   if (!context.inVPre) {
     if (tag === 'slot') {
@@ -649,6 +682,7 @@ function parseTag(
     isSelfClosing,
     children: [],
     loc: getSelection(context, start),
+    // 对应的code 将在转换阶段创建
     codegenNode: undefined // to be created during transform phase
   }
 }
@@ -795,23 +829,40 @@ function parseAttribute(
   let value: AttributeValue = undefined
 
   if (/^[\t\r\n\f ]*=/.test(context.source)) {
+    // 移除空格
     advanceSpaces(context)
+    // 移除等号
     advanceBy(context, 1)
+    // 移除空格
     advanceSpaces(context)
+    // 匹配attributeValue 返回其AST树
     value = parseAttributeValue(context)
+    // 没有找到对应的value的AST树，报错 MISSING_ATTRINBUTE_VALUE
     if (!value) {
       emitError(context, ErrorCodes.MISSING_ATTRIBUTE_VALUE)
     }
   }
+  // 保存value的位置
   const loc = getSelection(context, start)
 
+  // 匹配指令、值绑定简写、事件绑定简写 、插槽简写
   if (!context.inVPre && /^(v-[A-Za-z0-9-]|:|\.|@|#)/.test(name)) {
+    //匹配结果中有主要有三个，match[0]是整体，match[1]是指令名称 match[2]是属性名称 match[3]是事件修饰符
     const match =
       /(?:^v-([a-z0-9-]+))?(?:(?::|^\.|^@|^#)(\[[^\]]+\]|[^\.]+))?(.+)?$/i.exec(
         name
       )!
 
+    
+    // isPropShorthand 如果是.开头 说明可以直接设置为attribute，属于绑定值 可以确认是bind指令
     let isPropShorthand = startsWith(name, '.')
+    // 如果match[1]匹配到指令名称可以直接使用
+    /**
+     * 没有匹配到 需要进行判断
+     * 1. 如果是以.或者:开头，说明是绑定值简写 确认指令名称是bind
+     * 2. 如果是以@开头，说是绑定事件简写 确认指令名称是on
+     * 3. 啥也不是 说明是具名插槽简写 确认指令名称是slot
+     */
     let dirName =
       match[1] ||
       (isPropShorthand || startsWith(name, ':')
@@ -822,39 +873,49 @@ function parseAttribute(
     let arg: ExpressionNode | undefined
 
     if (match[2]) {
+      // 确实是不是插槽，和后面的结束位置有关
       const isSlot = dirName === 'slot'
       const startOffset = name.lastIndexOf(match[2])
+      // 找到属性名的开始和结束
       const loc = getSelection(
         context,
         getNewPosition(context, start, startOffset),
         getNewPosition(
           context,
           start,
+          // 如果插槽，需要加上可能存在的修饰符
           startOffset + match[2].length + ((isSlot && match[3]) || '').length
         )
       )
+      // 确认属性名
       let content = match[2]
+      // 默认属性是静态的
       let isStatic = true
 
       if (content.startsWith('[')) {
+        // 出现中括号，说明出现动态属性名
         isStatic = false
 
         if (!content.endsWith(']')) {
+          // 出现开始标记没有结束标记 报错：缺失结束。
           emitError(
             context,
             ErrorCodes.X_MISSING_DYNAMIC_DIRECTIVE_ARGUMENT_END
           )
           content = content.slice(1)
         } else {
+          // 拿出中括号里面的东西
           content = content.slice(1, content.length - 1)
         }
       } else if (isSlot) {
         // #1241 special case for v-slot: vuetify relies extensively on slot
         // names containing dots. v-slot doesn't have any modifiers and Vue 2.x
         // supports such usage so we are keeping it consistent with 2.x.
+        // 兼容v2行为 具名插槽的名字带点
         content += match[3] || ''
       }
 
+      // 产生属性名的ast
       arg = {
         type: NodeTypes.SIMPLE_EXPRESSION,
         content,
@@ -986,31 +1047,37 @@ function parseInterpolation(
   const [open, close] = context.options.delimiters
   __TEST__ && assert(startsWith(context.source, open))
 
+  // 匹配{{xxx 的长度 如果为-1 说没找到 告诉用户插槽结束缺失
   const closeIndex = context.source.indexOf(close, open.length)
   if (closeIndex === -1) {
     emitError(context, ErrorCodes.X_MISSING_INTERPOLATION_END)
     return undefined
   }
 
+  // 保存{{开始位置
   const start = getCursor(context)
+  // 从source中移除{{标记
   advanceBy(context, open.length)
-  /* 匹配开始{{ 和 结束 }} */
+  // 插值变量名称开始和结束位置存储 这里先各一个默认值
   const innerStart = getCursor(context)
   const innerEnd = getCursor(context)
-  // 原始内容长度 与 原始内容
+  // 原始插值变量名长度 与 原始插值变量名
   const rawContentLength = closeIndex - open.length
   const rawContent = context.source.slice(0, rawContentLength)
-  // 解析完实体的内容
+  // 插值变量可能会带有实体等其他东西 需要进行解码
   const preTrimContent = parseTextData(context, rawContentLength, mode)
-  // trim 之后的内容
+  // 去除空格
   const content = preTrimContent.trim()
+  // 求出插值变量名的开始位置 startOffset 代表真实插值变量名称前带有多少空格 修改innerStart
   const startOffset = preTrimContent.indexOf(content)
   if (startOffset > 0) {
     advancePositionWithMutation(innerStart, rawContent, startOffset)
   }
+  // 求出插值变量名的结束位置 endOffset 代表真实插值变量名称后带有多少空格 修改innerEnd
   const endOffset =
     rawContentLength - (preTrimContent.length - content.length - startOffset)
   advancePositionWithMutation(innerEnd, rawContent, endOffset)
+  // 移除插值结束标记
   advanceBy(context, close.length)
 
   // 返回的对象：loc记录的是字符串的位置 以及字符串的内容 content包含数据的名称以及名称在字符串中的位置以及当前节点详细信息

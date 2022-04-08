@@ -1,0 +1,188 @@
+<div id="app"></div>
+<!-- <script src="../dist/vue.global.js"></script> -->
+<script src="https://unpkg.com/@vue/compat"></script>
+<script>
+  const {
+    createApp,
+    reactive,
+    ref,
+    defineComponent,
+    h,
+    extend,
+    getCurrentInstance,
+    openBlock,
+    createElementBlock,
+    renderList,
+    Fragment,
+    watch
+  } = Vue
+
+  const Comp = defineComponent({
+    template: `
+      <div>
+        <slot />
+      </div>
+      `
+  })
+
+  const App = defineComponent({
+    /* template: `
+        <div v-if="counter">if</div>
+        <div v-else-if="counter">else-if</div>
+        <div v-else>else</div>
+        <div v-else>sdasdelse</div>
+  		`, */
+
+    /* template: `
+  			<template v-if="counter" v-for="item in list" :key="item.id"></template>
+  		`, */
+
+    /* template: `
+  		<div v-for="item in list" :key="item.id">
+  			<template v-if="counter">
+  				<div></div>
+  			</template>
+  		</div>
+  		`, */
+
+    /* template: `
+  			<div v-for="(item, name, index) in 'abc'">{{item}}{{name}}{{index}}</div>
+  		`, */
+
+    /* template: `
+  		<div v-if="counter">
+  			<template v-for="item in list"></template>
+  		</div>
+  		`, */
+
+    /* template: `
+  		<div v-for="item in list"></div>
+  		`, */
+
+    /*     template: `
+  <template v-memo="[valueA === valueB]" v-for="(item, name, index) in 'abc'"></template>
+      `, */
+
+    /* template: `
+        <Comp>
+          <template v-slot:default="slotScope"></template>
+        </Comp>
+      `, */
+
+    /* template: `
+        <div v-bind:[counter]="counter"></div>
+      `, */
+
+    /* template: `
+      <div v-bind:[aaa].camel="id"/>
+      `, */
+
+    /* template: `
+      <div v-bind="obj" v-memo="[valueA, valueB]" v-html="'<div>html</div>'"></div>
+      `, */
+
+    /* template: `
+        <transition>
+          <div></div>
+        </transition>
+      `, */
+
+    /* template: `
+        <Comp v-slot:default="slotScope">
+          <div>{{slotScope}}</div>
+        <Comp>
+        `, */
+
+    /* template: `
+        <div v-focus>&nbsp;</div>
+        `, */
+
+    /* template: `
+        <div @[event].right.once.capture="console.log(1)"></div>
+        `, */
+
+    template: `
+    <Comp v-model:arg.bar.[bar-baz]="value">{{textValue | filterId(1)}}</Comp>
+    `,
+
+    setup() {
+      const counter = ref(0)
+      function addCounter() {
+        counter.value++
+        obj = counter
+      }
+      const data = ref({
+        a: {
+          c: 1
+        }
+      })
+
+      const valueA = ref(0)
+      const valueB = ref(0)
+
+      const textValue = ref('textValue')
+
+      watch(textValue, (newValue, oldValue) => {
+        console.log(oldValue, newValue)
+      })
+
+      function changeValueA() {
+        valueA.value = 'a'
+      }
+
+      let obj = reactive({ a: 0 })
+
+      return {
+        counter,
+        addCounter,
+        changeValueA,
+        obj,
+        valueA,
+        valueB,
+        isShow: ref(true),
+        textValue
+      }
+
+      /* return () => {
+          const vnode =
+            (openBlock(true),
+            createElementBlock(
+              Fragment,
+              null,
+              renderList('abc', item => {
+                return openBlock(true), createElementBlock('svg')
+              }),
+              1 << 6
+            ))
+  						console.log(vnode)
+          return vnode
+        } */
+    },
+
+    components: {
+      Comp
+    },
+
+    directives: {
+      focus: {
+        mounted(el) {
+          consoel.log(el)
+        }
+      }
+    },
+
+    filters: {
+      /* 筛选id大于5的用户数据 */
+      filterId(data, id) {
+        return data.filter(item => item.id > id)
+      }
+    }
+  })
+
+  const app = createApp(App)
+
+  app.config.compilerOptions.whitespace = 'condense'
+
+  app.mount('#app')
+
+</script>

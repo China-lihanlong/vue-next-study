@@ -390,8 +390,8 @@ function doWatch(
     // pre 是vue2watch的默认行为方式，如果组件存在，就同步执行
     // 如果组件不存在或者是没有挂载完毕，会将其丢入队列中，等待DOM渲染完毕之后，才会执行
     scheduler = () => {
+      // 默认行为：第一次调用必须在组件挂载之前，组件已经被挂载，那么同步调用
       if (!instance || instance.isMounted) {
-        // 如果组件不存在或者是组件还没有挂载完成 放入队列中 等待组件挂载完成之后执行
         queuePreFlushCb(job)
       } else {
         // with 'pre' option, the first call must happen before

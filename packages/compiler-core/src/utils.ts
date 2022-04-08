@@ -47,12 +47,15 @@ import { PropsExpression } from './transforms/transformElement'
 import { parseExpression } from '@babel/parser'
 import { Expression } from '@babel/types'
 
+// 判断是不是静态表达式
 export const isStaticExp = (p: JSChildNode): p is SimpleExpressionNode =>
   p.type === NodeTypes.SIMPLE_EXPRESSION && p.isStatic
 
+// 判断是不是内置
 export const isBuiltInType = (tag: string, expected: string): boolean =>
   tag === expected || tag === hyphenate(expected)
 
+// 判断是不是内置组件
 export function isCoreComponent(tag: string): symbol | void {
   if (isBuiltInType(tag, 'Teleport')) {
     return TELEPORT
@@ -69,6 +72,13 @@ const nonIdentifierRE = /^\d|[^\$\w]/
 export const isSimpleIdentifier = (name: string): boolean =>
   !nonIdentifierRE.test(name)
 
+/**
+ * 检测表达式时的状态
+ * inMemberExp 是默认表达式状态 指在表达式内
+ * inBrackets 在匹配到中括号开始标志时(() 变为这种状态 指到了中括号中
+ * inParens 在匹配到小括号开始标志，([)变成这种状态 指到了小括号中
+ * inString 在匹配到单引号、双引号、反引号的开始标志('"`)变为这种状态 指到了字符串中
+ */
 const enum MemberExpLexState {
   inMemberExp,
   inBrackets,
@@ -76,8 +86,11 @@ const enum MemberExpLexState {
   inString
 }
 
+// 匹配表达式开头
 const validFirstIdentCharRE = /[A-Za-z_$\xA0-\uFFFF]/
+// 匹配表达式中间内容
 const validIdentCharRE = /[\.\?\w$\xA0-\uFFFF]/
+// 匹配.或者[前后带空格
 const whitespaceRE = /\s+[.[]\s*|\s*[.[]\s+/g
 
 /**
@@ -86,26 +99,35 @@ const whitespaceRE = /\s+[.[]\s*|\s*[.[]\s+/g
  * inside square brackets), but it's ok since these are only used on template
  * expressions and false positives are invalid expressions in the first place.
  */
+/**
+ * 检查表达式是不是MemberExpression的简单词法分析 (对象引用)
+ */
 export const isMemberExpressionBrowser = (path: string): boolean => {
   // remove whitespaces around . or [ first
+  // 移除空白
   path = path.trim().replace(whitespaceRE, s => s.trim())
 
   let state = MemberExpLexState.inMemberExp
   let stateStack: MemberExpLexState[] = []
+  // 小括号打开数量
   let currentOpenBracketCount = 0
+  // 中括号打开数量
   let currentOpenParensCount = 0
   let currentStringType: "'" | '"' | '`' | null = null
 
   for (let i = 0; i < path.length; i++) {
     const char = path.charAt(i)
     switch (state) {
+      // 默认在表达式
       case MemberExpLexState.inMemberExp:
         if (char === '[') {
           stateStack.push(state)
+          // 匹配到中括号切换到inBrackets
           state = MemberExpLexState.inBrackets
           currentOpenBracketCount++
         } else if (char === '(') {
           stateStack.push(state)
+          // 匹配到小括号 切换到inParens
           state = MemberExpLexState.inParens
           currentOpenParensCount++
         } else if (
@@ -152,6 +174,7 @@ export const isMemberExpressionBrowser = (path: string): boolean => {
         break
     }
   }
+  // 最后要保证小括号和中括号全部关闭
   return !currentOpenBracketCount && !currentOpenParensCount
 }
 
@@ -250,6 +273,7 @@ export function assert(condition: boolean, msg?: string) {
   }
 }
 
+// 根据名字获取结构上的指令对象
 export function findDir(
   node: ElementNode,
   name: string | RegExp,
@@ -290,6 +314,7 @@ export function findProp(
   }
 }
 
+// 判断绑定的是不是指定的静态name
 export function isBindKey(arg: DirectiveNode['arg'], name: string): boolean {
   return !!(arg && isStaticExp(arg) && arg.content === name)
 }
@@ -375,6 +400,7 @@ export function injectProp(
    *
    * we need to get the real props before normalization
    */
+  // 原始props
   let props = originalProps
   let callPath: CallExpression[] = []
   let parentCall: CallExpression | undefined
@@ -383,6 +409,7 @@ export function injectProp(
     !isString(props) &&
     props.type === NodeTypes.JS_CALL_EXPRESSION
   ) {
+    // 获取未标准化的props
     const ret = getUnnormalizedProps(props)
     props = ret[0]
     callPath = ret[1]
@@ -458,6 +485,8 @@ export function toValidAssetId(
   type: 'component' | 'directive' | 'filter'
 ): string {
   // see issue#4422, we need adding identifier on validAssetId if variable `name` has specific character
+  // 处理极端情况下的有效资产id 我们需要在有效资产id上替换标识符(-替换成_) 如果name变量上有特殊字符
+  // 没有出现- 则会将匹配到的字符串转换Code后进行拼接
   return `_${type}_${name.replace(/[^\w]/g, (searchValue, replaceValue) => {
     return searchValue === '-' ? '_' : name.charCodeAt(replaceValue).toString()
   })}`
@@ -520,6 +549,7 @@ export function hasScopeRef(
 
 export function getMemoedVNodeCall(node: BlockCodegenNode | MemoExpression) {
   if (node.type === NodeTypes.JS_CALL_EXPRESSION && node.callee === WITH_MEMO) {
+    // v-memo
     return node.arguments[1].returns as VNodeCall
   } else {
     return node

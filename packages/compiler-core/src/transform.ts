@@ -228,9 +228,15 @@ export function createTransformContext(
       context.parent!.children[context.childIndex] = context.currentNode = node
     },
     removeNode(node) {
+      // 删除节点
       if (__DEV__ && !context.parent) {
         throw new Error(`Cannot remove root node.`)
       }
+      // 可以不传递需要删除那个节点 默认删除 currentNode
+      // 删除的方法是找到要删除的节点的父节点、
+      // 找到要删除的节点的索引(没有传递默认currentNodeIndex)
+      // 从parent.children中删除 并且将其i减一
+      // 实在不行就给-1 然后就报错
       const list = context.parent!.children
       const removalIndex = node
         ? list.indexOf(node)
@@ -343,11 +349,14 @@ function createRootCodegen(root: RootNode, context: TransformContext) {
   if (children.length === 1) {
     const child = children[0]
     // if the single child is an element, turn it into a block.
+    // 如果单个子节点是元素 请将它转换成块
     if (isSingleElementRoot(root, child) && child.codegenNode) {
       // single element root is never hoisted so codegenNode will never be
       // SimpleExpressionNode
+      // 单个子元素根不会被提升 所以codegenNode一定不会是simpleExpressionNode
       const codegenNode = child.codegenNode
       if (codegenNode.type === NodeTypes.VNODE_CALL) {
+        // 转换成块
         makeBlock(codegenNode, context)
       }
       root.codegenNode = codegenNode
@@ -355,14 +364,18 @@ function createRootCodegen(root: RootNode, context: TransformContext) {
       // - single <slot/>, IfNode, ForNode: already blocks.
       // - single text node: always patched.
       // root codegen falls through via genNode()
+      // 单个<slot />、IfNode、ForNode 已经 block
+      // 单个文本节点 应该始终更新
       root.codegenNode = child
     }
   } else if (children.length > 1) {
     // root has multiple nodes - return a fragment block.
+    // 根有多个节点 返回片段块
     let patchFlag = PatchFlags.STABLE_FRAGMENT
     let patchFlagText = PatchFlagNames[PatchFlags.STABLE_FRAGMENT]
     // check if the fragment actually contains a single valid child with
     // the rest being comments
+    // 校验片段中是否真的只有一个是有效元素其他的都是注释
     if (
       __DEV__ &&
       children.filter(c => c.type !== NodeTypes.COMMENT).length === 1
@@ -384,6 +397,7 @@ function createRootCodegen(root: RootNode, context: TransformContext) {
     )
   } else {
     // no children = noop. codegen will return null.
+    // 没有子元素 codegen返回null
   }
 }
 
@@ -395,6 +409,7 @@ export function traverseChildren(
   const nodeRemoved = () => {
     i--
   }
+  // 遍历当前AST树下的子AST树 重新调用traverseNode
   for (; i < parent.children.length; i++) {
     const child = parent.children[i]
     if (isString(child)) continue
@@ -413,6 +428,7 @@ export function traverseNode(
   // apply transform plugins
   const { nodeTransforms } = context
   const exitFns = []
+  // 第一次进入一定是ROOT，会先对最外层的根进行优化
   for (let i = 0; i < nodeTransforms.length; i++) {
     const onExit = nodeTransforms[i](node, context)
     if (onExit) {
@@ -431,6 +447,7 @@ export function traverseNode(
     }
   }
 
+  // 第一次进入ROOT,在下面的switch中到一定会执行transformChildren
   switch (node.type) {
     case NodeTypes.COMMENT:
       if (!context.ssr) {
@@ -472,6 +489,7 @@ export function createStructuralDirectiveTransform(
   name: string | RegExp,
   fn: StructuralDirectiveTransform
 ): NodeTransform {
+  // 匹配结构指令：v-if v-else v-else-if v-for
   const matches = isString(name)
     ? (n: string) => n === name
     : (n: string) => name.test(n)
@@ -481,6 +499,7 @@ export function createStructuralDirectiveTransform(
       const { props } = node
       // structural directive transforms are not concerned with slots
       // as they are handled separately in vSlot.ts
+      // 结构指令转换和插槽无关，他们在vSlot.ts中单独处理
       if (node.tagType === ElementTypes.TEMPLATE && props.some(isVSlot)) {
         return
       }
@@ -491,6 +510,7 @@ export function createStructuralDirectiveTransform(
           // structural directives are removed to avoid infinite recursion
           // also we remove them *before* applying so that it can further
           // traverse itself in case it moves the node around
+          // 移除结构指令 避免无限递归
           props.splice(i, 1)
           i--
           const onExit = fn(node, prop, context)
