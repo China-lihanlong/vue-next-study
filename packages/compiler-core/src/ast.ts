@@ -549,6 +549,8 @@ export interface ForIteratorExpression extends FunctionExpression {
 // Some expressions, e.g. sequence and conditional expressions, are never
 // associated with template nodes, so their source locations are just a stub.
 // Container types like CompoundExpression also don't need a real location.
+// 某些表达式，例如序列表达式和条件表达式，永远不会与模板节点关联，因此他们的源位置只是一个存根
+// 像CompoundExpression这样的容器类型也不需要实际位置 
 export const locStub: SourceLocation = {
   source: '',
   start: { line: 1, column: 1, offset: 0 },

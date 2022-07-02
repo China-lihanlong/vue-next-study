@@ -123,6 +123,7 @@ const buildClientSlotFn: SlotFnBuilder = (props, children, loc) =>
 
 // Instead of being a DirectiveTransform, v-slot processing is called during
 // transformElement to build the slots object for a component.
+// 在transformElement中v-slot进行处理，构建组件的slots对象，而不是directiveTransform
 export function buildSlots(
   node: ElementNode,
   context: TransformContext,
@@ -229,7 +230,7 @@ export function buildSlots(
       hasDynamicSlots = true
     }
 
-    // 构建客户端插槽函数
+    // 构建客户端插槽函数(只有在SSR模式下调用的才是外面传递进来的，默认都是执行buildClientSlotFn)
     const slotFunction = buildSlotFn(slotProps, slotChildren, slotLoc)
     // check if this slot is conditional (v-if/v-for)
     // 检查此插槽是否存在vIf vFor vElse/vElseIf

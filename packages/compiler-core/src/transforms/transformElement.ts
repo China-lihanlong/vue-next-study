@@ -524,6 +524,8 @@ export function buildProps(
         // in inline mode there is no setupState object, so we can't use string
         // keys to set the ref. Instead, we need to transform it to pass the
         // actual ref instead.
+        // 在内联模式，没有setupState对象，所以我们不能使用string key设置ref，相反，
+        // 我们需要转换为传递实际的ref(非浏览器模式)
         if (!__BROWSER__ && context.inline && value?.content) {
           valueNode = createFunctionExpression(['_value', '_refs'])
           valueNode.body = createBlockStatement(

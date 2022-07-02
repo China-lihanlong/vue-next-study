@@ -130,6 +130,7 @@ function createCodegenContext(
       if (!__BROWSER__ && context.map) {
         if (node) {
           let name
+          // 添加使用者上下文 "_ctx" 比如value 会变成_ctx.value
           if (node.type === NodeTypes.SIMPLE_EXPRESSION && !node.isStatic) {
             const content = node.content.replace(/^_ctx\./, '')
             if (content !== node.content && isSimpleIdentifier(content)) {
@@ -228,6 +229,7 @@ export function generate(
     genFunctionPreamble(ast, preambleContext)
   }
   // enter render function
+  // 渲染函数入口
   const functionName = ssr ? `ssrRender` : `render`
   // 服务端渲染 会多两个属性 客户端渲染只会用到 _ctx和 _catche
   const args = ssr ? ['_ctx', '_push', '_parent', '_attrs'] : ['_ctx', '_cache']
@@ -259,6 +261,7 @@ export function generate(
         `const { ${ast.helpers
           .map(s => `${helperNameMap[s]}: _${helperNameMap[s]}`)
           .join(', ')} } = _Vue`
+          
       )
       push(`\n`)
       newline()
@@ -468,6 +471,7 @@ function genAssets(
   type: 'component' | 'directive' | 'filter',
   { helper, push, newline, isTS }: CodegenContext
 ) {
+  // 根据类型选择对应的助手函数
   const resolver = helper(
     __COMPAT__ && type === 'filter'
       ? RESOLVE_FILTER
@@ -478,10 +482,12 @@ function genAssets(
   for (let i = 0; i < assets.length; i++) {
     let id = assets[i]
     // potential component implicit self-reference inferred from SFC filename
+    // 根据SFC文件名推断出可能的隐式组件自引用
     const maybeSelfReference = id.endsWith('__self')
     if (maybeSelfReference) {
       id = id.slice(0, -6)
     }
+    // 生成代码
     push(
       `const ${toValidAssetId(id, type)} = ${resolver}(${JSON.stringify(id)}${
         maybeSelfReference ? `, true` : ``
@@ -503,6 +509,7 @@ function genHoists(hoists: (JSChildNode | null)[], context: CodegenContext) {
   newline()
 
   // generate inlined withScopeId helper
+  // 为withScopeId助手函数生成代码
   if (genScopeId) {
     push(
       `const _withScopeId = n => (${helper(
@@ -512,6 +519,7 @@ function genHoists(hoists: (JSChildNode | null)[], context: CodegenContext) {
     newline()
   }
 
+  // 循环静态节点列表 生成静态节点代码
   for (let i = 0; i < hoists.length; i++) {
     const exp = hoists[i]
     if (exp) {
@@ -582,6 +590,7 @@ function genNodeList(
     if (isString(node)) {
       push(node)
     } else if (isArray(node)) {
+      // 如果当前节点是数组会重新调用genNodeListArray
       genNodeListAsArray(node, context)
     } else {
       genNode(node, context)
@@ -589,6 +598,7 @@ function genNodeList(
     if (i < nodes.length - 1) {
       if (multilines) {
         comma && push(',')
+        // 后面还有节点换行
         newline()
       } else {
         comma && push(', ')
@@ -604,7 +614,7 @@ function genNode(node: CodegenNode | symbol | string, context: CodegenContext) {
     return
   }
   if (isSymbol(node)) {
-    // 需要通过助手函数进行创建 比如静态节点使用createStaticVNode
+    // 需要通过助手函数进行创建 比如静态节点(字符串化的结构)使用createStaticVNode
     context.push(context.helper(node))
     return
   }
@@ -716,6 +726,7 @@ function genInterpolation(node: InterpolationNode, context: CodegenContext) {
   // 插值需要用toDisplayString包裹
   const { push, helper, pure } = context
   if (pure) push(PURE_ANNOTATION)
+  // 还是纯净的，注入/*#__PURE__*/
   push(`${helper(TO_DISPLAY_STRING)}(`)
   genNode(node.content, context)
   push(`)`)
@@ -725,11 +736,15 @@ function genCompoundExpression(
   node: CompoundExpressionNode,
   context: CodegenContext
 ) {
+  /* 出现如：string{{varibale}} 字符串和变量连续出现的需要分开考虑
+  */
   for (let i = 0; i < node.children!.length; i++) {
     const child = node.children![i]
+    // 如果是字符串，直接拼接
     if (isString(child)) {
       context.push(child)
     } else {
+      // 变量比如{{variable}}其他的需要再次解析后拼接
       genNode(child, context)
     }
   }
@@ -760,6 +775,7 @@ function genComment(node: CommentNode, context: CodegenContext) {
   if (pure) {
     push(PURE_ANNOTATION)
   }
+  // 注释类型节点的代码需要通过createComment生成
   push(`${helper(CREATE_COMMENT)}(${JSON.stringify(node.content)})`, node)
 }
 
@@ -776,25 +792,33 @@ function genVNodeCall(node: VNodeCall, context: CodegenContext) {
     disableTracking,
     isComponent
   } = node
+  // 根据VNodeCall内的数据生成不同的代码
   if (directives) {
     push(helper(WITH_DIRECTIVES) + `(`)
   }
+  // 如果节点是个块，那么在创建块之前需要先使用openBlock
   if (isBlock) {
     push(`(${helper(OPEN_BLOCK)}(${disableTracking ? `true` : ``}), `)
   }
   if (pure) {
     push(PURE_ANNOTATION)
   }
+  // 看节点是不是块，选择用createBlock还是createVNode
   const callHelper: symbol = isBlock
+  // 组件用createBlock 其他的用createElementBlock
     ? getVNodeBlockHelper(context.inSSR, isComponent)
+  // 组件用createVNode 其他用createElementVNode
     : getVNodeHelper(context.inSSR, isComponent)
   push(helper(callHelper) + `(`, node)
+  // 生成节点代码 可能是列表也可能只有一个节点
   genNodeList(
     genNullableArgs([tag, props, children, patchFlag, dynamicProps]),
     context
   )
   push(`)`)
+  // 闭合前面打开的括号
   if (isBlock) {
+    
     push(`)`)
   }
   if (directives) {
@@ -804,6 +828,7 @@ function genVNodeCall(node: VNodeCall, context: CodegenContext) {
   }
 }
 
+// 处理参数
 function genNullableArgs(args: any[]): CallExpression['arguments'] {
   let i = args.length
   while (i--) {
@@ -815,11 +840,13 @@ function genNullableArgs(args: any[]): CallExpression['arguments'] {
 // JavaScript
 function genCallExpression(node: CallExpression, context: CodegenContext) {
   const { push, helper, pure } = context
+  // 被调用的方法名
   const callee = isString(node.callee) ? node.callee : helper(node.callee)
   if (pure) {
     push(PURE_ANNOTATION)
   }
   push(callee + `(`, node)
+  // 方法渲染的是啥
   genNodeList(node.arguments, context)
   push(`)`)
 }
@@ -828,9 +855,11 @@ function genObjectExpression(node: ObjectExpression, context: CodegenContext) {
   const { push, indent, deindent, newline } = context
   const { properties } = node
   if (!properties.length) {
+    // 如果没有属性，直接拼接{}
     push(`{}`, node)
     return
   }
+  // 如果属性超过1个或者是非浏览器平台且属性有至少一个不是文档表达式 则是多行
   const multilines =
     properties.length > 1 ||
     ((!__BROWSER__ || __DEV__) &&
@@ -840,12 +869,15 @@ function genObjectExpression(node: ObjectExpression, context: CodegenContext) {
   for (let i = 0; i < properties.length; i++) {
     const { key, value } = properties[i]
     // key
+    // 生成对象表达式key
     genExpressionAsPropertyKey(key, context)
     push(`: `)
+    // 生成对象表达式value
     // value
     genNode(value, context)
     if (i < properties.length - 1) {
       // will only reach this if it's multilines
+      // 仅当它式多行时才会到达此
       push(`,`)
       newline()
     }
@@ -854,10 +886,12 @@ function genObjectExpression(node: ObjectExpression, context: CodegenContext) {
   push(multilines ? `}` : ` }`)
 }
 
+// 生成数组表达式 其实也是执行了genNodeListArray
 function genArrayExpression(node: ArrayExpression, context: CodegenContext) {
   genNodeListAsArray(node.elements as CodegenNode[], context)
 }
 
+// 生成函数表达式代码
 function genFunctionExpression(
   node: FunctionExpression,
   context: CodegenContext
@@ -866,9 +900,11 @@ function genFunctionExpression(
   const { params, returns, body, newline, isSlot } = node
   if (isSlot) {
     // wrap slot functions with owner context
+    // 插槽函数需要使用使用者上下位包裹
     push(`_${helperNameMap[WITH_CTX]}(`)
   }
   push(`(`, node)
+  // 根据参数生成参数代码
   if (isArray(params)) {
     genNodeList(params, context)
   } else if (params) {
@@ -880,6 +916,7 @@ function genFunctionExpression(
     indent()
   }
   if (returns) {
+    // 根据返回值生成返回值代码
     if (newline) {
       push(`return `)
     }
@@ -889,12 +926,14 @@ function genFunctionExpression(
       genNode(returns, context)
     }
   } else if (body) {
+    // 不是返回而是生成函数主体代码
     genNode(body, context)
   }
   if (newline || body) {
     deindent()
     push(`}`)
   }
+  // 闭合插槽函数
   if (isSlot) {
     if (__COMPAT__ && node.isNonScopedSlot) {
       push(`, undefined, true`)
@@ -910,11 +949,14 @@ function genConditionalExpression(
   const { test, consequent, alternate, newline: needNewline } = node
   const { push, indent, deindent, newline } = context
   if (test.type === NodeTypes.SIMPLE_EXPRESSION) {
+    // 条件中出现非常规字符 需要用括号包裹
     const needsParens = !isSimpleIdentifier(test.content)
     needsParens && push(`(`)
+    // 生成表达式代码
     genExpression(test, context)
     needsParens && push(`)`)
   } else {
+    // 不是稳定表达式需要用括号包裹
     push(`(`)
     genNode(test, context)
     push(`)`)
@@ -922,23 +964,29 @@ function genConditionalExpression(
   needNewline && indent()
   context.indentLevel++
   needNewline || push(` `)
+  // 条件表达式代码是用三元表达式
+  // 这里正在渲染 consequent
   push(`? `)
   genNode(consequent, context)
   context.indentLevel--
   needNewline && newline()
   needNewline || push(` `)
   push(`: `)
+  // 是否在当前条件表达式中嵌套表达式
   const isNested = alternate.type === NodeTypes.JS_CONDITIONAL_EXPRESSION
   if (!isNested) {
     context.indentLevel++
   }
+  // 生成条件表达式 alternate
   genNode(alternate, context)
   if (!isNested) {
     context.indentLevel--
   }
+  // 后面会又其他节点，需要回到之前的缩进位置
   needNewline && deindent(true /* without newline */)
 }
 
+// 生成对表达式缓存的代码
 function genCacheExpression(node: CacheExpression, context: CodegenContext) {
   const { push, helper, indent, deindent, newline } = context
   push(`_cache[${node.index}] || (`)

@@ -846,7 +846,7 @@ export function finishComponentSetup(
   }
 
   // warn missing template/render
-  // the runtime compilation of template in SSR is done by server-render
+  // the rutime compilation of template in SSR is done by server-render
   if (__DEV__ && !Component.render && instance.render === NOOP && !isSSR) {
     /* istanbul ignore if */
     if (!compile && Component.template) {

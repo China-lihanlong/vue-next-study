@@ -64,7 +64,7 @@ export const transformOn: DirectiveTransform = (
     }
   } else {
     // already a compound expression.
-    // 已经是符合表达式(SSR)
+    // 已经是复合表达式(SSR)
     eventName = arg
     eventName.children.unshift(`${context.helperString(TO_HANDLER_KEY)}(`)
     eventName.children.push(`)`)
@@ -103,26 +103,33 @@ export const transformOn: DirectiveTransform = (
       isInlineStatement && context.removeIdentifiers(`$event`)
       // with scope analysis, the function is hoistable if it has no reference
       // to scope variables.
+      // 根据作用域分析，函数可以提前声明，因为它没有引用到作用域变量
       shouldCache =
         context.cacheHandlers &&
         // unnecessary to cache inside v-once
+        // 在v-once中不需要缓存
         !context.inVOnce &&
         // runtime constants don't need to be cached
         // (this is analyzed by compileScript in SFC <script setup>)
+        // 运行时常量不需要缓存 这是通过编译SFC <script setup>中分析的来的
         !(exp.type === NodeTypes.SIMPLE_EXPRESSION && exp.constType > 0) &&
         // #1541 bail if this is a member exp handler passed to a component -
         // we need to use the original function to preserve arity,
         // e.g. <transition> relies on checking cb.length to determine
         // transition end handling. Inline function is ok since its arity
         // is preserved even when cached.
+        // 如果时传递给组件的成员e表达式处理程序，那么我们需要使用原始函数来保持参数的一致性
         !(isMemberExp && node.tagType === ElementTypes.COMPONENT) &&
         // bail if the function references closure variables (v-for, v-slot)
         // it must be passed fresh to avoid stale values.
+        // 如果函数引用闭包变量(v-for, v-slot)，则必须以新的方式传递它，以避免过时的值
         !hasScopeRef(exp, context.identifiers)
       // If the expression is optimizable and is a member expression pointing
       // to a function, turn it into invocation (and wrap in an arrow function
       // below) so that it always accesses the latest value when called - thus
       // avoiding the need to be patched.
+      // 如果表达式是可优化的，并且是指向函数的成员表达式，那么转换为调用(并在下面包装成箭头函数)
+      // 因此调用时它总是访问最新值 避免进行patch
       if (shouldCache && isMemberExp) {
         if (exp.type === NodeTypes.SIMPLE_EXPRESSION) {
           exp.content = `${exp.content} && ${exp.content}(...args)`

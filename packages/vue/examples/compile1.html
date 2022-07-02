@@ -1,6 +1,7 @@
 <div id="app"></div>
-<!-- <script src="../dist/vue.global.js"></script> -->
-<script src="https://unpkg.com/@vue/compat"></script>
+<script src="../dist/vue.global.js"></script>
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src https://*; child-src 'none';">
+<!-- <script src="https://unpkg.com/@vue/compat"></script> -->
 <script>
   const {
     createApp,
@@ -69,6 +70,11 @@
         </Comp>
       `, */
 
+      template: `
+        <div v-if="value">1</div>
+        <div v-else>2</div>
+      `,
+
     /* template: `
         <div v-bind:[counter]="counter"></div>
       `, */
@@ -101,9 +107,15 @@
         <div @[event].right.once.capture="console.log(1)"></div>
         `, */
 
-    template: `
+    /* template: `
     <Comp v-model:arg.bar.[bar-baz]="value">{{textValue | filterId(1)}}</Comp>
-    `,
+    `, */
+
+    data: function () {
+      return {
+        a: 10
+      }
+    },
 
     setup() {
       const counter = ref(0)
@@ -166,7 +178,7 @@
     directives: {
       focus: {
         mounted(el) {
-          consoel.log(el)
+          console.log(el)
         }
       }
     },
@@ -176,7 +188,11 @@
       filterId(data, id) {
         return data.filter(item => item.id > id)
       }
-    }
+    },
+
+    /* render: function(...arg) {
+      console.log(arg)
+    } */
   })
 
   const app = createApp(App)

@@ -101,6 +101,7 @@ const whitespaceRE = /\s+[.[]\s*|\s*[.[]\s+/g
  */
 /**
  * 检查表达式是不是MemberExpression的简单词法分析 (对象引用)
+ * memberExpression的定义：https://262.ecma-international.org/5.1/#sec-11.2
  */
 export const isMemberExpressionBrowser = (path: string): boolean => {
   // remove whitespaces around . or [ first
@@ -493,6 +494,7 @@ export function toValidAssetId(
 }
 
 // Check if a node contains expressions that reference current context scope ids
+// 通过节点是否包含表达式来检查当前上下文作用域id是否被引用
 export function hasScopeRef(
   node: TemplateChildNode | IfBranchNode | ExpressionNode | undefined,
   ids: TransformContext['identifiers']

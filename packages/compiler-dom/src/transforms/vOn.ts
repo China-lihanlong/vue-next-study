@@ -25,7 +25,7 @@ const isNonKeyModifier = /*#__PURE__*/ makeMap(
   // 事件传播管理
   `stop,prevent,self,` +
     // system modifiers + exact
-    // 系统修改器 + 精确
+    // 系统修饰符 + 组合
     `ctrl,shift,alt,meta,exact,` +
     // mouse
     // 鼠标
