@@ -592,6 +592,7 @@ export function applyOptions(instance: ComponentInternalInstance) {
   // dev 模式下确认选项中有没有重复的配置
   const checkDuplicateProperties = __DEV__ ? createDuplicateChecker() : null
 
+  // props 配置项只有在开发模式下才会使用
   if (__DEV__) {
     const [propsOptions] = instance.propsOptions
     if (propsOptions) {
@@ -603,13 +604,14 @@ export function applyOptions(instance: ComponentInternalInstance) {
 
   // 处理options选项优先顺序
   // options initialization order (to be consistent with Vue 2):
-  // - props (already done outside of this function)
+  // - props (already done outside of this function) 已经在该函数外面完成
   // - inject
   // - methods
-  // - data (deferred since it relies on `this` access)
+  // - data (deferred since it relies on `this` access) 延迟所以依靠 `this` 访问
   // - computed
-  // - watch (deferred since it relies on `this` access)
+  // - watch (deferred since it relies on `this` access) 延迟所以依靠 `this` 访问
 
+  // 被注入选项
   if (injectOptions) {
     resolveInjections(
       injectOptions,
@@ -619,13 +621,17 @@ export function applyOptions(instance: ComponentInternalInstance) {
     )
   }
 
+// 方法选项
   if (methods) {
     for (const key in methods) {
+      // 取出方法
       const methodHandler = (methods as MethodOptions)[key]
       if (isFunction(methodHandler)) {
         // In dev mode, we use the `createRenderContext` function to define
         // methods to the proxy target, and those are read-only but
         // reconfigurable, so it needs to be redefined here
+        // 在开发模式下，使用createRennderContext定义代理目标的方法，这些方法是只读的
+        // 但是可以重新配置，这里需要重新定义不可修改
         if (__DEV__) {
           Object.defineProperty(ctx, key, {
             value: methodHandler.bind(publicThis),
@@ -634,9 +640,11 @@ export function applyOptions(instance: ComponentInternalInstance) {
             writable: true
           })
         } else {
+          // 定义到上下文 并将this修改为当前代理目标
           ctx[key] = methodHandler.bind(publicThis)
         }
         if (__DEV__) {
+          // 开发模式下，请检查是否有重复方法
           checkDuplicateProperties!(OptionTypes.METHODS, key)
         }
       } else if (__DEV__) {
@@ -648,6 +656,7 @@ export function applyOptions(instance: ComponentInternalInstance) {
     }
   }
 
+  // vue2 data函数处理
   if (dataOptions) {
     // 数据的响应式处理
     if (__DEV__ && !isFunction(dataOptions)) {
@@ -672,9 +681,11 @@ export function applyOptions(instance: ComponentInternalInstance) {
       instance.data = reactive(data)
       if (__DEV__) {
         for (const key in data) {
+          // 检查数据是否重复
           checkDuplicateProperties!(OptionTypes.DATA, key)
           // expose data on ctx during dev
           if (key[0] !== '$' && key[0] !== '_') {
+            // 定义到ctx中
             Object.defineProperty(ctx, key, {
               configurable: true,
               enumerable: true,
@@ -691,6 +702,7 @@ export function applyOptions(instance: ComponentInternalInstance) {
   // 此时初始化状态完成 开始缓存访问
   shouldCacheAccess = true
 
+// 计算属性选项
   if (computedOptions) {
     for (const key in computedOptions) {
       const opt = (computedOptions as ComputedOptions)[key]
@@ -712,6 +724,7 @@ export function applyOptions(instance: ComponentInternalInstance) {
               )
             }
           : NOOP
+          // c 是计算对象
       const c = computed({
         get,
         set
@@ -728,12 +741,14 @@ export function applyOptions(instance: ComponentInternalInstance) {
     }
   }
 
+// 观察者选项
   if (watchOptions) {
     for (const key in watchOptions) {
       createWatcher(watchOptions[key], ctx, publicThis, key)
     }
   }
 
+// 注入选项
   if (provideOptions) {
     const provides = isFunction(provideOptions)
       ? provideOptions.call(publicThis)
@@ -744,9 +759,11 @@ export function applyOptions(instance: ComponentInternalInstance) {
   }
 
   if (created) {
+    // 执行created生命周期函数
     callHook(created, instance, LifecycleHooks.CREATED)
   }
 
+  // 注册Vue2生命周期函数选项
   function registerLifecycleHook(
     register: Function,
     hook?: Function | Function[]
@@ -758,7 +775,7 @@ export function applyOptions(instance: ComponentInternalInstance) {
     }
   }
 
-  // 注册钩子函数
+  // 注入Vue2生命函数周期选项 排除beforeCreate和created 它们两个会单独执行 vue3没有提供类似功能生命周期函数
   registerLifecycleHook(onBeforeMount, beforeMount)
   registerLifecycleHook(onMounted, mounted)
   registerLifecycleHook(onBeforeUpdate, beforeUpdate)
@@ -772,6 +789,8 @@ export function applyOptions(instance: ComponentInternalInstance) {
   registerLifecycleHook(onUnmounted, unmounted)
   registerLifecycleHook(onServerPrefetch, serverPrefetch)
 
+  
+  // 兼容vue2的beforeDestroy 和 destroyed函数，它们会分别加入到onBeforeUnmount和onUnmount中一起执行
   if (__COMPAT__) {
     if (
       beforeDestroy &&
@@ -812,6 +831,7 @@ export function applyOptions(instance: ComponentInternalInstance) {
   }
 
   // asset options.
+  // 资产选项
   if (components) instance.components = components as any
   if (directives) instance.directives = directives
   if (
@@ -876,9 +896,11 @@ export function resolveInjections(
               `temporary and will not be needed in the future.)`
           )
         }
+        // 注入到上下文中
         ctx[key] = injected
       }
     } else {
+      // 注入到上下文中
       ctx[key] = injected
     }
     if (__DEV__) {
@@ -887,6 +909,7 @@ export function resolveInjections(
   }
 }
 
+// 执行钩子函数
 function callHook(
   hook: Function,
   instance: ComponentInternalInstance,
@@ -901,12 +924,14 @@ function callHook(
   )
 }
 
+// 创建观察者
 export function createWatcher(
   raw: ComponentWatchOptionItem,
   ctx: Data,
   publicThis: ComponentPublicInstance,
   key: string
 ) {
+  // 观察的数据如果是：xxx.xxx 需要创建获取的路径
   const getter = key.includes('.')
     ? createPathGetter(publicThis, key)
     : () => (publicThis as any)[key]

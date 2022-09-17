@@ -376,7 +376,7 @@ function doWatch(
   job.allowRecurse = !!cb
 
   // 产生一个调度函数 一共是三种执行情况
-  // sync 同步执行 post 异步执行 pre 默认行为(组件没有挂载进入队列等待组件渲染完毕后在执行，组件存在同步执行 )
+  // sync 同步执行 post 队列后执行 pre 默认行为队列前执行(组件没有挂载进入队列等待组件渲染完毕后在执行，组件存在同步执行 )
   // 最后会在triggerEffect执行
   let scheduler: EffectScheduler
   if (flush === 'sync') {
@@ -390,7 +390,8 @@ function doWatch(
     // pre 是vue2watch的默认行为方式，如果组件存在，就同步执行
     // 如果组件不存在或者是没有挂载完毕，会将其丢入队列中，等待DOM渲染完毕之后，才会执行
     scheduler = () => {
-      // 默认行为：第一次调用必须在组件挂载之前，组件已经被挂载，那么同步调用
+      // 第一次调用必须在组件挂载之前 以便同步调用
+      // 实例还不存在或者还未挂载则加入到pre队列中
       if (!instance || instance.isMounted) {
         queuePreFlushCb(job)
       } else {

@@ -86,10 +86,13 @@ const KeepAliveImpl: ComponentOptions = {
     // and the KeepAlive instance exposes activate/deactivate implementations.
     // The whole point of this is to avoid importing KeepAlive directly in the
     // renderer to facilitate tree-shaking.
+    // KeepAlive通过ctx与实例化的渲染器通信，渲染器在ctx中传入其内部，Keepaliv实例公开激活/停用实现。
+    // 这样做的全部目的是避免在渲染器中直接导入KeepAlive以促进树抖动
     const sharedContext = instance.ctx as KeepAliveContext
 
     // if the internal renderer is not registered, it indicates that this is server-side rendering,
     // for KeepAlive, we just need to render its children
+    // 如果没有注册内部渲染器，则表示这是服务端渲染，对于KeepAlive，我们只需要渲染其子级
     if (!sharedContext.renderer) {
       return slots.default
     }
@@ -146,8 +149,10 @@ const KeepAliveImpl: ComponentOptions = {
       }
     }
 
+    // 当KeepAlive中的vnode卸载时调用
     sharedContext.deactivate = (vnode: VNode) => {
       const instance = vnode.component!
+      // 将卸载的vnode移动到storageContainer中
       move(vnode, storageContainer, null, MoveType.LEAVE, parentSuspense)
       queuePostRenderEffect(() => {
         if (instance.da) {
@@ -370,17 +375,22 @@ function registerKeepAliveHook(
   // cache the deactivate branch check wrapper for injected hooks so the same
   // hook can be properly deduped by the scheduler. "__wdc" stands for "with
   // deactivation check".
+  // 缓存注入的钩子函数的停用分支检查器，以便调度器可以正确的消除重复的钩子函数
+  // "__wdc" 代表带有停用检查
   const wrappedHook =
     hook.__wdc ||
     (hook.__wdc = () => {
       // only fire the hook if the target instance is NOT in a deactivated branch.
       let current: ComponentInternalInstance | null = target
+      // 跟着父链网上走，找外面的KeepAlive实例，如果实例上存在isDeactivated
+      // 说明vdnoe已经被卸载，不需要执行一次onDeactivate钩子函数
       while (current) {
         if (current.isDeactivated) {
           return
         }
         current = current.parent
       }
+      // 执行钩子函数
       return hook()
     })
   injectHook(type, wrappedHook, target)
@@ -389,6 +399,11 @@ function registerKeepAliveHook(
   // This avoids the need to walk the entire component tree when invoking these
   // hooks, and more importantly, avoids the need to track child components in
   // arrays.
+  // 除了在目标实例上注册外，我们还沿着父链向上走，并在所有保持活动根的祖先实例上注册它。
+  // 这避免了在调用钩子的时候这避免了在调用这些钩子时遍历整个组件树的需要，更重要的是，
+  // 避免了在数组中跟踪子组件的需要
+  // 也就嵌套KeepAlice，外面的KeepAlive身上也带有里面KeepAlie的钩子函数
+  // 在执行钩子的时候，会先执行外层的KeepAlive的钩子函数，再执行里面的KeepAlive的钩子函数
   if (target) {
     let current = target.parent
     while (current && current.parent) {
@@ -408,7 +423,10 @@ function injectToKeepAliveRoot(
 ) {
   // injectHook wraps the original for error handling, so make sure to remove
   // the wrapped version.
+  // 更新KeepAliveRoot的钩子函数数组
+  // 拿到注入后，产生的wrapperHook
   const injected = injectHook(type, hook, keepAliveRoot, true /* prepend */)
+  // 立即给目标实例注入onUnmounted钩子函数，在目标实例卸载时在KeepAliveRoot钩子函数数组中删除它
   onUnmounted(() => {
     remove(keepAliveRoot[type]!, injected)
   }, target)

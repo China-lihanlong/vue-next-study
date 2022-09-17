@@ -1587,11 +1587,13 @@ function baseCreateRenderer(
         // activated hook for keep-alive roots.
         // #1742 activated hook must be accessed after first render
         // since the hook may be injected by a child keep-alive
+        // 激活的钩子函数必须在第一次渲染之后访问，因为钩子可能被保持活动的子KeepAlive注入
         // 如果这个组件时被keep-alive缓存过(vue2就会有一个activated函数)
         // 组件实例上就有一个a作为 在缓存组件被激活时被调用
         // 且都是在渲染队列中 等待渲染完成在调用
         // 但是服务器渲染不会有此钩子函数
         if (initialVNode.shapeFlag & ShapeFlags.COMPONENT_SHOULD_KEEP_ALIVE) {
+          // 如果存在Vue3中的onActivate钩子函数，加入队列中
           instance.a && queuePostRenderEffect(instance.a, parentSuspense)
           // 兼容vue2的 hook:activated VNode 生命周期函数配置
           if (
@@ -2399,7 +2401,7 @@ function baseCreateRenderer(
 
     // 是否有自定义指令生命周期函数需要执行
     const shouldInvokeDirs = shapeFlag & ShapeFlags.ELEMENT && dirs
-    // 排除异步组件容器 只执行普通的
+    // 排除异步组件容器 只执行普通的组件才会执行
     const shouldInvokeVnodeHook = !isAsyncWrapper(vnode)
 
     // 执行即将卸载vnode的生命周期函数
@@ -2466,7 +2468,7 @@ function baseCreateRenderer(
       }
     }
 
-    // 执行卸载vnode时的生命周期函数 还有自定义指令的卸载
+    // 执行已经卸载vnode时的生命周期函数 还有自定义指令的卸载
     if (
       (shouldInvokeVnodeHook &&
         (vnodeHook = props && props.onVnodeUnmounted)) ||

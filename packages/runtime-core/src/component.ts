@@ -152,6 +152,7 @@ export { ComponentOptions }
 
 type LifecycleHook<TFn = Function> = TFn[] | null
 
+// 生命周期函数种类
 export const enum LifecycleHooks {
   BEFORE_CREATE = 'bc',
   CREATED = 'c',

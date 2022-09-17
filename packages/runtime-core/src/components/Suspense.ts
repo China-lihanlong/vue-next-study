@@ -599,7 +599,7 @@ function createSuspenseBoundary(
         parent = parent.parent
       }
       // no pending parent suspense, flush all jobs
-      // 如果没有parent Suspense 开始执行所有的异步任务
+      // 如果没有parent Suspense 将任务加入到队列中
       if (!hasUnresolvedAncestor) {
         queuePostFlushCb(effects)
       }
@@ -881,6 +881,7 @@ function normalizeSuspenseSlot(s: any) {
   return s
 }
 
+// 处理任务 符合条件作为依赖 不符合加入post队列中
 export function queueEffectWithSuspense(
   fn: Function | Function[],
   suspense: SuspenseBoundary | null

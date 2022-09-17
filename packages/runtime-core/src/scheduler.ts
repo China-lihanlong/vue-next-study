@@ -91,6 +91,7 @@ function findInsertionIndex(id: number) {
   return start
 }
 
+// 加入到queue队列中
 export function queueJob(job: SchedulerJob) {
   // the dedupe search uses the startIndex argument of Array.includes()
   // by default the search index includes the current job that is being run
@@ -112,6 +113,7 @@ export function queueJob(job: SchedulerJob) {
     if (job.id == null) {
       queue.push(job)
     } else {
+      // 插队
       queue.splice(findInsertionIndex(job.id), 0, job)
     }
     queueFlush()
@@ -126,6 +128,9 @@ function queueFlush() {
   }
 }
 
+// 删除队列中的任务，比如组件自身产生了更新任务 但是它的子组件也因为它而产生了更新任务
+// 但是由于DOM更新是深度更新，所以在进行这个子组件的时候会先把子组件的更新任务从队列中删除
+// 避免重复更新
 export function invalidateJob(job: SchedulerJob) {
   const i = queue.indexOf(job)
   if (i > flushIndex) {
@@ -133,6 +138,7 @@ export function invalidateJob(job: SchedulerJob) {
   }
 }
 
+// 将任务加入队列中
 function queueCb(
   cb: SchedulerJobs,
   activeQueue: SchedulerJob[] | null,
@@ -144,31 +150,42 @@ function queueCb(
       !activeQueue ||
       !activeQueue.includes(cb, cb.allowRecurse ? index + 1 : index)
     ) {
+      // 没有正在执行的队列或者是正在执行的队列中没有这个任务 可以将其加入等待队列中
       pendingQueue.push(cb)
     }
   } else {
     // if cb is an array, it is a component lifecycle hook which can only be
     // triggered by a job, which is already deduped in the main queue, so
     // we can skip duplicate check here to improve perf
+    // 如果cb是一个数组，那么它就是和组件生命周期挂钩，只能由一个任务触发，并且该任务已经在队列中去重
+    // 我们可以跳过重复检查以提高性能
+    // 通过queuePostRenderEffect(也就是queuePostFlushCb)将组件生命周期函数的任务加入到队列中
     pendingQueue.push(...cb)
   }
   queueFlush()
 }
 
+// 加入到pre队列中 通常是将watch产生的任务加入到pre队列中
 export function queuePreFlushCb(cb: SchedulerJob) {
   queueCb(cb, activePreFlushCbs, pendingPreFlushCbs, preFlushIndex)
 }
 
+// 加入到post队列中 通常是将一部分的组件生命周期函数加入post队列中 比如 updated
+// 当组件是Suspense时，则会使用Suspense.ts中的函数queueEffectWithSuspense
+// 在queueEffectWithSuspense中符合某种条件会将任务作为Suspense的依赖
+// 不符合则会加入到post队列中
 export function queuePostFlushCb(cb: SchedulerJobs) {
   queueCb(cb, activePostFlushCbs, pendingPostFlushCbs, postFlushIndex)
 }
 
+// 执行pre队列中的任务
 export function flushPreFlushCbs(
   seen?: CountMap,
   parentJob: SchedulerJob | null = null
 ) {
   if (pendingPreFlushCbs.length) {
     currentPreFlushParentJob = parentJob
+    // 去重
     activePreFlushCbs = [...new Set(pendingPreFlushCbs)]
     pendingPreFlushCbs.length = 0
     if (__DEV__) {
@@ -188,20 +205,26 @@ export function flushPreFlushCbs(
       // 执行队列中的任务
       activePreFlushCbs[preFlushIndex]()
     }
+    // 清空Pre队列
     activePreFlushCbs = null
     preFlushIndex = 0
     currentPreFlushParentJob = null
     // recursively flush until it drains
+    // 递归执行，当前任务作为父任务(pre等待队列中的新任务是由当前任务执行产生的)
     flushPreFlushCbs(seen, parentJob)
   }
 }
 
+// 执行post队列中的任务
 export function flushPostFlushCbs(seen?: CountMap) {
   if (pendingPostFlushCbs.length) {
+    // 去重
     const deduped = [...new Set(pendingPostFlushCbs)]
     pendingPostFlushCbs.length = 0
 
     // #1947 already has active queue, nested flushPostFlushCbs call
+    // 已经存在一个正在执行的队列 那就是嵌套执行flushPostFlushCbs
+    // 请将任务添加到正在执行的队列末尾， 等待执行
     if (activePostFlushCbs) {
       activePostFlushCbs.push(...deduped)
       return
@@ -227,6 +250,7 @@ export function flushPostFlushCbs(seen?: CountMap) {
       }
       activePostFlushCbs[postFlushIndex]()
     }
+    // 清空activePost队列中的任务
     activePostFlushCbs = null
     postFlushIndex = 0
   }
@@ -235,13 +259,18 @@ export function flushPostFlushCbs(seen?: CountMap) {
 const getId = (job: SchedulerJob): number =>
   job.id == null ? Infinity : job.id
 
+// 开始执行队列中的任务
 function flushJobs(seen?: CountMap) {
+  // seen 记录的是任务
+  // 等待执行任务的标记变为false
   isFlushPending = false
+  // 正在执行标记为true
   isFlushing = true
   if (__DEV__) {
     seen = seen || new Map()
   }
 
+  // 执行pre队列中的任务
   flushPreFlushCbs(seen)
 
   // Sort queue before flush.
@@ -251,6 +280,9 @@ function flushJobs(seen?: CountMap) {
   //    priority number)
   // 2. If a component is unmounted during a parent component's update,
   //    its update can be skipped.
+  // 执行队列中的任务之前进行排序
+  // 确保是由父组件到子组件的更新(父组件对象总是比子组件先创建，所以优先标记应该更小) 排序是从小到大排序
+  // 如果父组件更新过程中卸载了组件，那么可以跳过更新
   queue.sort((a, b) => getId(a) - getId(b))
 
   // conditional usage of checkRecursiveUpdate must be determined out of
@@ -265,6 +297,8 @@ function flushJobs(seen?: CountMap) {
   try {
     for (flushIndex = 0; flushIndex < queue.length; flushIndex++) {
       const job = queue[flushIndex]
+      // job.active=false 为失效任务不会执行 
+      // 比如在卸载组件的时候，会去触发stop函数，这个函数内部就会停止这个组件的产生的任务
       if (job && job.active !== false) {
         if (__DEV__ && check(job)) {
           continue
@@ -278,18 +312,21 @@ function flushJobs(seen?: CountMap) {
     flushIndex = 0
     queue.length = 0
 
+    // 执行post队列中任务
     flushPostFlushCbs(seen)
 
     isFlushing = false
     currentFlushPromise = null
     // some postFlushCb queued jobs!
     // keep flushing until it drains.
+    // posst任务队列执行过程中产生新的任务加入到队列中
+    // 继续执行，知道全部完成
     if (
       queue.length ||
       pendingPreFlushCbs.length ||
       pendingPostFlushCbs.length
     ) {
-    // 执行在更新中又产生新的更新
+    // 队列中还有任务在等待 请继续执行
       flushJobs(seen)
     }
   }

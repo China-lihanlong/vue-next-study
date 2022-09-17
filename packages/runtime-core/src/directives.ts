@@ -83,6 +83,7 @@ export type DirectiveArguments = Array<
 
 /**
  * Adds directives to a VNode.
+ * 添加指令到vnode中
  */
 export function withDirectives<T extends VNode>(
   vnode: T,
@@ -94,6 +95,7 @@ export function withDirectives<T extends VNode>(
     return vnode
   }
   const instance = internalInstance.proxy
+  // vnode 指令汇总
   const bindings: DirectiveBinding[] = vnode.dirs || (vnode.dirs = [])
   for (let i = 0; i < directives.length; i++) {
     let [dir, value, arg, modifiers = EMPTY_OBJ] = directives[i]
@@ -103,6 +105,7 @@ export function withDirectives<T extends VNode>(
         updated: dir
       } as ObjectDirective
     }
+    // value数据格式可能是深层次的数据，需要进行处理
     if (dir.deep) {
       traverse(value)
     }
@@ -133,11 +136,14 @@ export function invokeDirectiveHook(
     }
     let hook = binding.dir[name] as DirectiveHook | DirectiveHook[] | undefined
     if (__COMPAT__ && !hook) {
+      // 兼容vue2的customDirectives的hook函数
       hook = mapCompatDirectiveHook(name, binding.dir, instance)
     }
     if (hook) {
       // disable tracking inside all lifecycle hooks
       // since they can potentially be called inside effects.
+      // 禁用生命周期钩子函数中的所有追踪
+      // 因为它们可能会被称为内部效果
       pauseTracking()
       callWithAsyncErrorHandling(hook, instance, ErrorCodes.DIRECTIVE_HOOK, [
         vnode.el,

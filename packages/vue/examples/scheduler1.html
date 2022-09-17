@@ -1,0 +1,341 @@
+<div id="app"></div>
+<script src="../dist/vue.global.js"></script>
+<script>
+  const {createApp, watch, ref, onMounted, onUpdated, onBeforeUpdate, queueJob, queuePreFlushCb,queuePostFlushCb} = Vue
+
+  // const App = {
+  //   template: `
+  //   <h1>{{counter}}</h1>
+  //   <button @click=addCounter>addCounter</button>
+  //   `,
+  //   setup() {
+  //     const counter = ref(1)
+
+  //     const addCounter = () => {
+  //       counter.value++
+  //     }
+
+  //     watch(counter, () => {
+  //       console.log(`counter 改变了 值为：${counter.value}`)
+  //     })
+
+  //     return {
+  //       counter,
+  //       addCounter
+  //     }
+  //   }
+  // }
+
+  /* const Child = {
+    template: `
+      <div>{{counter}}</div>
+    `,
+    setup(props, {attrs, slots, emit}) {
+
+      const counter = ref(1)
+      const changeCounter = () => {
+        counter.value++
+        emit('foo', counter.value)
+      }
+
+      return {
+        changeCounter,
+        counter
+      }
+      
+    }
+  }
+
+  const Parent = {
+    template: `
+      <Child ref="child"  @foo="changeState" v-if="hasChild" />
+      <button @click="changeCounter">changeCounter</button>
+    `,
+    setup() {
+      const changeState = () => {
+        hasChild.value = false
+      }
+
+      const hasChild = ref(true)
+
+      onMounted(() => {
+        console.log(hasChild)
+      })
+
+      return {
+        changeState,
+        hasChild
+      }
+    },
+    
+    methods: {
+      changeCounter: function(){
+        this.$refs.child.changeCounter()
+      }
+    },
+
+    updated() {
+      this.hasChildValue = true
+    },
+    
+    components: {
+      Child
+    }
+  } */
+
+/* const Child = {
+  props: {
+    counter: {
+      type: Number
+    }
+  },
+
+  template: `
+    <div v-if="counter===1">{{counter}}</div>
+    <div>{{num}}</div>
+  `,
+  setup(props, {attrs, slots, emits}) {
+    const num = ref(1)
+    watch(() => props.counter, () => {
+        num.value++
+    })
+    console.log(props.counter)
+    return {num}
+  },
+}
+
+const Parent = {
+  template: `
+    <button @click="addCounter">addCounter</button>
+    <Child :counter=counter></Child>
+  `,
+  setup() {
+    const counter = ref(1)
+    const addCounter = () => {
+      counter.value++
+    }
+
+    return {
+      counter,
+      addCounter
+    }
+  },
+
+  components: {
+    Child
+  }
+} */
+
+  /* const Child = {
+    template: `{{counter +counter2}}`,
+
+    props: {
+      counter2: {
+        type: Number
+      }
+    },
+
+    setup() {
+      const counter = ref(1)
+      const changeCounter = () => {
+        counter.value++
+      }
+
+      return {
+        counter,
+        changeCounter
+      }
+    }
+  }
+
+  const Child1 = {
+    template: `{{counter + counter2}}`,
+    props: {
+      counter2: {
+        type: Number
+      }
+    },
+
+    setup() {
+      const counter = ref(1)
+      const changeCounter = () => {
+        counter.value++
+      }
+
+      return {
+        counter,
+        changeCounter
+      }
+    }
+  }
+
+
+
+  const Parent = {
+    template: `<Child ref="Child" :counter2="counter2"></Child>
+    <Child1 ref="Child1" :counter2='counter2'></Child1>
+    {{counter2}}
+      <button @click="changeChildCounter">changeChildCounter</button>
+    `,
+    setup() {
+      const counter2 = ref(1)
+      return {
+        counter2
+      }
+    },
+
+    methods: {
+      changeChildCounter: function () {
+        this.$refs.Child.counter++
+        this.$refs.Child1.counter++
+        this.counter2++
+      }
+    },
+
+    components: {
+      Child,
+      Child1
+    }
+  } */
+
+/* const Child = {
+  template: `<div>{{$props.counter}}</div>`,
+
+  props: {
+    counter: {
+      type: Number,
+      defualt: () => {
+        return 1
+      }
+    }
+  },
+
+  setup(props, {attrs, slots, emit}) {
+    /* watch(() => props.counter, () => {
+      if (props.counter <= 2) {
+        emit('change', '子组件触发的修改')
+      }
+    })
+  }
+} */
+
+/* const Parent = {
+  template: `
+  <Child @change="changeCounter" :counter="counter"></Child>
+  <button @click="changeCounter">changeCounter</button>
+  {{counter}}
+  `,
+
+  setup() {
+    const counter = ref(1)
+    const changeCounter = (...arg) => {
+      console.log(arg)
+      counter.value++
+    }
+
+    onUpdated(() => {
+      console.log(1)
+    })
+
+    onBeforeUpdate(() => {
+      console.log(2)
+    })
+
+    onMounted(() => {
+      console.log(3)
+    })
+
+    onMounted(() => {
+      console.log(queuePreFlushCb)
+    })
+
+    watch(counter, () => {
+      if(counter.value > 0) {
+        counter.value--
+      }
+    })
+
+    return {
+      counter,
+      changeCounter
+    }
+  },
+
+  components: {
+    Child
+  }
+} */
+
+/* const App = {
+    template: `
+    <div v-if="counter%=2" ref="childRef">v-if</div>
+    <div v-else="counter%=2" ref="childRef">v-else</div>
+    <button @click="changeCounter">changeCounter</button>
+    `,
+    
+    setup() {
+      const childRef = ref(null)
+      const counter = ref(0)
+      const changeCounter = () => {
+        counter.value++
+      }
+      
+      return {
+        childRef,
+        counter,
+        changeCounter
+      }
+    },
+    
+    updated() {
+      console.log(`显示的内容是`,this.$refs.childRef.innerHTML)
+    }
+} */
+
+const Child = {
+  template:`<div></div>`,
+
+  props: {
+    counter: {
+      type: Number
+    }
+  },
+
+  setup(props, {attrs, slots,emit}) {
+    console.log(props)
+    watch(props, () => {
+      if(props.counter <= 2) {
+        emit('foo')
+      }
+    })
+  },
+}
+
+const App = {
+  template:`
+  <div>{{counter}}</div>
+  <Child :counter="counter"  @foo="changeCounter"/>
+  <button @click="changeCounter">changeCounter</button>
+  `,
+  setup() {
+    const counter = ref(1)
+    const changeCounter = () => {
+      counter.value++
+    }
+
+    return {
+      counter,
+      changeCounter
+    }
+  },
+
+  components: {
+    Child
+  }
+}
+
+  const app = createApp(App)
+
+  console.log(app)
+  app.mount('#app')
+</script>

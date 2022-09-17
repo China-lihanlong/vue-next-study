@@ -68,6 +68,7 @@ class ComputedRefImpl<T> {
     trackRefValue(self)
     if (self._dirty) {
       // 防止在链式调用computed的时候，后续的微任务多次去获取重新计算新值
+      // 只有当修改之后才会重新计算新值
       self._dirty = false
       self._value = self.effect.run()!
     }

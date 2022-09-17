@@ -1,0 +1,46 @@
+<div id="app"></div>
+<script src="../dist/vue.global.js"></script>
+<script>
+	const {createApp, onActivated, onMounted} = Vue
+
+	const Child1 = {
+
+		template: `<div></div>`,
+		setup() {
+			
+
+			onMounted(() => {
+				console.log('onBeforeMount')
+			})
+		}
+	}
+
+	const Child2 = {
+		template: `<div></div>`,
+
+		setup() {
+			
+		}
+	}
+
+	const App = {
+		template: `
+		<div>
+				<Child1 :onVnodeBeforeMount="onVnodeBeforeMount" />
+		</div>
+		`,
+
+		components: {
+			Child1,
+			Child2
+		},
+
+		methods: {
+			onVnodeBeforeMount: function() {console.log('1')}
+		}
+	}
+
+	const app = createApp(App)
+
+	app.mount('#app')
+</script>
